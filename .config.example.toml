@@ -1,0 +1,7 @@
+[binance]
+    api_key = ""
+    secret_key = ""
+
+[bittrex]
+    api_key = ""
+    secret_key = ""

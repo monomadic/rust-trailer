@@ -1,0 +1,15 @@
+[package]
+name = "trailer"
+version = "0.1.0"
+authors = ["Rob Saunders <rob@wearebrandnew.com>"]
+
+[dependencies]
+restson = "^0.1"
+serde = "^1.0"
+serde_derive = "^1.0"
+binance = { git = "https://github.com/wisespace-io/binance-rs.git" }
+colored = "1.5"
+docopt = "0.8"
+# bittrex-api = "0.3.2"
+bittrex-api = { path = "../_forks/bittrex-api" }
+toml = "*"
