@@ -66,8 +66,18 @@ impl BinanceAPI {
         p
     }
 
-    pub fn orders(&self) -> Vec<Order> {
-        Vec::new()
+    pub fn orders(&self, symbols: Vec<String>) -> Vec<Order> {
+        let mut orders = Vec::new();
+
+        for symbol in symbols {
+            match self.account.get_open_orders(symbol) {
+                Ok(o) => {
+                    orders.push(Order{});
+                },
+                Err(e) => println!("Error: {}", e),
+            };
+        }
+        orders
     }
 
     // pub fn all_trades(&self) {

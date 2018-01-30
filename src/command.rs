@@ -17,6 +17,7 @@ Usage:
   trailer binance orders
   trailer bittrex funds
   trailer bittrex prices
+  trailer bot backtest <csv>
 
 Options:
   -h --help     Show this screen.
@@ -31,6 +32,13 @@ pub fn run_docopt() -> io::Result<()> {
         .unwrap_or_else(|e| e.exit());
 
     let conf = ::config::read();
+
+    if args.get_bool("bot") {
+        if args.get_bool("backtest") {
+            let bot = ::bot::Bot::load_config("bots/LTC.toml".to_string());
+            bot.backtest(vec![]);
+        }
+    }
 
     if args.get_bool("bittrex") {
 
@@ -86,7 +94,7 @@ pub fn run_docopt() -> io::Result<()> {
 
                 if args.get_bool("orders") {
                     println!("getting orders...");
-                    let orders = binance.orders();
+                    let orders = binance.orders(vec!["NEO".to_string()]);
 
                     // ::display::show_orders(orders);
                 }

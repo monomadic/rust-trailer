@@ -16,61 +16,6 @@ pub fn colored_balance(num: f64) -> String {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-
-//     #[test]
-//     fn test_group_trades() {
-//         assert_eq!(group_trades(vec![
-//                 ::types::Trade{ cost: 10., qty: 10.0, buy: true },
-//                 ::types::Trade{ cost: 10., qty: 10.0, buy: true },
-//             ]),
-//             vec![::types::Trade{ cost: 10., qty: 20.0, buy: true }]
-//         );
-//     }
-// }
-
-pub fn group_trades(trades: Vec<Trade>) -> Vec<Trade> {
-    let mut grouped_trades = Vec::new();
-    let mut current_trade = Trade{ cost: trades.first().unwrap().cost, qty: 0.0, buy: trades.first().unwrap().buy };
-
-    for trade in trades.clone() {
-        if trade.cost == current_trade.cost && trade.buy == current_trade.buy {
-            current_trade.qty += trade.qty;
-        } else {
-            grouped_trades.push(current_trade.clone());
-            current_trade = trade.clone();
-        }
-    }
-    grouped_trades.push(current_trade.clone());
-
-    // println!("{:?}", trades);
-    // println!("{:?}", grouped_trades);
-
-    grouped_trades
-}
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-
-//     #[test]
-//     fn test_show_trades() {
-//         assert_eq!(
-//             show_trades(),
-
-//         );
-//     }
-// }
-
-// pub struct TradeHistory {
-//     pub balance: f64,
-//     pub average_buy_price: f64,
-//     pub average_sell_price: f64,
-//     pub profit_locked: f64,
-// }
-
 pub fn show_trades(trades: Vec<Trade>) {
     println!("{}", "\nTrade History".to_string().yellow());
 
@@ -81,7 +26,7 @@ pub fn show_trades(trades: Vec<Trade>) {
     // let mut profit_potential = 0.0_f64;
 
     // calculate all profits so far
-    for trade in group_trades(trades) {
+    for trade in average_trades(trades) {
         if trade.buy {
             // println!("pre buy: total_cost {} balance {}", total_cost, balance);
             let transaction_cost = trade.cost * trade.qty;
