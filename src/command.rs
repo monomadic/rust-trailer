@@ -14,6 +14,7 @@ Usage:
   trailer binance ls <coin>
   trailer binance all
   trailer binance trades
+  trailer binance orders
   trailer bittrex funds
   trailer bittrex prices
 
@@ -49,7 +50,7 @@ pub fn run_docopt() -> io::Result<()> {
 
                     println!("getting prices...");
                     let prices = bittrex.prices();
-                    println!("{:?}", prices);
+                    // println!("{:?}", prices);
 
                     ::display::show_funds(funds, prices);
                 }
@@ -81,6 +82,13 @@ pub fn run_docopt() -> io::Result<()> {
                     let prices = binance.prices();
 
                     ::display::show_funds(funds, prices);
+                }
+
+                if args.get_bool("orders") {
+                    println!("getting orders...");
+                    let orders = binance.orders();
+
+                    // ::display::show_orders(orders);
                 }
 
                 // if args.get_bool("trades") {

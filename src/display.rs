@@ -136,6 +136,8 @@ pub fn show_funds(funds: Vec<Balance>, current_prices: Prices) {
     println!("========");
     let mut total_btc = 0.0_f64;
 
+    // println!("{:?}", funds);
+
     // let btc_value = current_prices.get("BTC").expect(&format!("BTCUSDT to be present in current prices: {:?}", current_prices));
     println!("{}", format!("{:8}\t{:16} \t{}\t{}", "Coin", "Total", "Value BTC", "Current Price").bold());
 
@@ -145,7 +147,7 @@ pub fn show_funds(funds: Vec<Balance>, current_prices: Prices) {
         //     format!("({} in orders)", locked)
         // } else { "".to_string() };
 
-        if total >= 1.0 {
+        if total >= 1.0 || symbol == "BTC" {
 
             let btc_value:f64 = if symbol != "BTC" {
                 *current_prices

@@ -12,3 +12,7 @@ pub enum TradeType {
     Buy,
     Sell,
 }
+
+#[derive(Debug, Clone, Copy)]
+pub struct Order {
+}

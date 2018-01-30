@@ -66,6 +66,10 @@ impl BinanceAPI {
         p
     }
 
+    pub fn orders(&self) -> Vec<Order> {
+        Vec::new()
+    }
+
     // pub fn all_trades(&self) {
     //     match self.account.trade_history(coin.into()) {
     //         Ok(answer) => {
