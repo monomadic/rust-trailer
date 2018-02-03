@@ -1,0 +1,10 @@
+pair = "icxbtc"
+
+# [trailer]
+
+[[stoploss]]
+limit = 22.0
+position = 20.0
+
+[[buy]]
+limit = 21.0

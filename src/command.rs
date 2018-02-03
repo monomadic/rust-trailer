@@ -12,12 +12,16 @@ const USAGE: &'static str = "
 Usage:
   trailer binance funds
   trailer binance ls <coin>
+  trailer binance buckets <coin>
   trailer binance all
   trailer binance trades
   trailer binance orders
   trailer bittrex funds
   trailer bittrex prices
+  trailer bittrex orders
+  trailer bot run
   trailer bot backtest <csv>
+  trailer caps
 
 Options:
   -h --help     Show this screen.
@@ -33,11 +37,25 @@ pub fn run_docopt() -> io::Result<()> {
 
     let conf = ::config::read();
 
+    if args.get_bool("caps") {
+        println!("cap.symbol, cap.volume_usd_24h, cap.market_cap_usd, cap.cap_vs_vol_24h()");
+        for cap in ::coinmarketcap::all() {
+            println!("{},{:?},{:?},{}", cap.symbol, cap.volume_usd_24h, cap.market_cap_usd, cap.cap_vs_vol_24h());
+        }
+    }
+
     if args.get_bool("bot") {
+
+        if args.get_bool("run") {
+            let bot = ::bot::Bot::load_config("bots/LTC.toml".to_string());
+            bot.run();
+        }
+
         if args.get_bool("backtest") {
             let bot = ::bot::Bot::load_config("bots/LTC.toml".to_string());
             bot.backtest(vec![]);
         }
+
     }
 
     if args.get_bool("bittrex") {
@@ -62,6 +80,14 @@ pub fn run_docopt() -> io::Result<()> {
 
                     ::display::show_funds(funds, prices);
                 }
+
+                if args.get_bool("orders") {
+                    println!("getting orders...");
+                    let orders = bittrex.orders();
+
+                    ::display::show_orders(orders);
+                }
+
             },
             None => {
                 println!("No bittrex keys inside .config.toml!");
@@ -113,9 +139,29 @@ pub fn run_docopt() -> io::Result<()> {
 
                     for coin in coins {
                         // binance.show_trades(coin);
-                        println!("getting trades for {}...", coin);
+                        // println!("getting trades for {}...", coin);
                         let trades = binance.trades(coin);
                         ::display::show_trades(trades);
+
+                        let orders = binance.orders(vec![coin.to_string()]);
+                        ::display::show_orders(orders);
+                    }
+                }
+
+                if args.get_bool("buckets") {
+                    let coins = args.get_vec("<coin>");
+
+                    for coin in coins {
+                        // binance.show_trades(coin);
+                        // println!("getting trades for {}...", coin);
+                        let trades = binance.trades(coin);
+                        // ::display::show_trades(trades);
+
+                        // let orders = binance.orders(vec![coin.to_string()]);
+                        // ::display::show_orders(orders);
+
+                        let buckets = ::types::trade_buckets(trades);
+                        ::display::show_buckets(buckets);
                     }
                 }
             },

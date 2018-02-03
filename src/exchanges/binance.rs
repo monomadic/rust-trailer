@@ -7,6 +7,7 @@ use binance::api::*;
 use colored::*;
 use binance::account::*;
 use binance::market::*;
+use binance::websockets::*;
 use std::collections::HashMap;
 
 use ::types::*;
@@ -14,6 +15,33 @@ use ::types::*;
 pub struct BinanceAPI {
     account: Account,
     market: Market,
+}
+
+pub struct BinanceWS {
+    socket: WebSockets,
+}
+
+use binance::model::TradesEvent;
+
+struct BinanceWebSocketHandler;
+
+impl MarketEventHandler for BinanceWebSocketHandler {
+    fn aggregated_trades_handler(&self, event: &TradesEvent) {
+        println!(
+            "- Symbol: {}, price: {}, qty: {}",
+            event.symbol, event.price, event.qty
+        );
+    }
+}
+
+pub fn ws(symbol: String) {
+    println!("attempting to connect to binance with symbol: {}", symbol);
+    let agg_trade: String = format!("{}@aggTrade", symbol);
+    let mut web_socket: WebSockets = WebSockets::new();
+
+    web_socket.add_market_handler(BinanceWebSocketHandler);
+    web_socket.connect(&agg_trade).unwrap(); // check error
+    web_socket.event_loop();
 }
 
 pub fn connect(api_key: &str, secret_key: &str) -> BinanceAPI {
@@ -27,17 +55,22 @@ pub fn connect(api_key: &str, secret_key: &str) -> BinanceAPI {
 }
 
 impl BinanceAPI {
-    pub fn funds(&self) -> Vec<(String, f64, f64)> {
+
+    pub fn set_limit_order(symbol: &str, price: u64) {
+    }
+
+    pub fn funds(&self) -> Vec<CoinAsset> {
         let mut funds = Vec::new();
 
         match self.account.get_account() {
             Ok(answer) => {
                 for balance in answer.balances {
-                    funds.push((
-                        balance.asset,
-                        balance.free.parse::<f64>().unwrap() + balance.locked.parse::<f64>().unwrap(),
-                        balance.locked.parse::<f64>().unwrap(),
-                    ))
+                    funds.push(CoinAsset {
+                        symbol: balance.asset,
+                        amount: balance.free.parse::<f64>().unwrap() + balance.locked.parse::<f64>().unwrap(),
+                        locked: balance.locked.parse::<f64>().unwrap(),
+                        exchange: "Binance".to_string(),
+                    })
                 }
             },
             Err(e) => println!("Error: {}", e),
@@ -72,13 +105,33 @@ impl BinanceAPI {
         for symbol in symbols {
             match self.account.get_open_orders(symbol) {
                 Ok(o) => {
-                    orders.push(Order{});
+                    orders.push(Order{
+                        id: "0.,".to_string(),
+                        symbol: ",".to_string(),
+                        order_type: "".to_string(),
+                        amount: 0.,
+                        price: 0.,
+                    });
                 },
                 Err(e) => println!("Error: {}", e),
             };
         }
         orders
     }
+
+    // pub fn order_history(&self, symbol: &str) -> Vec<Order> {
+    //     let mut orders = Vec::new();
+
+    //     match self.account.get_open_orders(symbol.to_string()) {
+    //         Ok(o) => {
+    //             // orders.push(Order{});
+    //             println!("{:?}", o);
+    //         },
+    //         Err(e) => println!("Error: {}", e),
+    //     };
+
+    //     orders
+    // }
 
     // pub fn all_trades(&self) {
     //     match self.account.trade_history(coin.into()) {

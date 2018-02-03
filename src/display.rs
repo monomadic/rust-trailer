@@ -10,9 +10,30 @@ type Balance = (String, f64, f64);
 
 pub fn colored_balance(num: f64) -> String {
     if num > 0.0 {
-        format!("{}{}", num.to_string().green(), "".clear())
+        format!("{}{}", num.to_string().green(), "".white())
     } else {
-        format!("{}{}", num.to_string().red(), "".clear())
+        format!("{}{}", num.to_string().red(), "".white())
+    }
+}
+
+pub fn show_orders(orders: Vec<Order>) {
+    println!("{}", "\nOpen Orders".to_string().yellow());
+    for order in orders {
+        println!("{:20}\t{:20}\t{:20}\t{:20}",
+            order.symbol, order.order_type, order.price, order.amount);
+    }
+}
+
+pub fn show_buckets(buckets: Vec<TradeBucket>) {
+    println!("{}", "\nTrade Buckets".to_string().yellow());
+    println!("{:<20} {:<20} {:<20} {:<20}", "Trades", "Locked Profit", "Buy Avg", "Sell Avg");
+    for bucket in buckets {
+        println!("{:<20} {:<20.8} {:<20.8} {:<20.8}",
+            format!("{}", bucket.trades.len()).white(),
+            colored_balance(bucket.profit),
+            colored_balance(bucket.average_buy),
+            colored_balance(bucket.average_sell)
+        );
     }
 }
 
@@ -25,8 +46,9 @@ pub fn show_trades(trades: Vec<Trade>) {
     let mut profit_locked = 0.0_f64;
     // let mut profit_potential = 0.0_f64;
 
+    println!("{:<8} {:<8} {:<20} {:<20}", "", "Qty", "Price", "Cost");
     // calculate all profits so far
-    for trade in average_trades(trades) {
+    for trade in group_trades(trades.clone()) {
         if trade.buy {
             // println!("pre buy: total_cost {} balance {}", total_cost, balance);
             let transaction_cost = trade.cost * trade.qty;
@@ -37,7 +59,7 @@ pub fn show_trades(trades: Vec<Trade>) {
 
             // println!("{}", &format!("\tbalance: {}\t transaction_cost: {}\t total cost: {}\t average_buy_price: {}", balance, transaction_cost, total_cost, average_buy_price).green());
 
-            println!("{}\t {} at ₿{} a total cost of ₿{}", "BUY".to_string().green(), trade.qty, trade.cost, total_cost);
+            println!("{:<8} {:<8} {:<20.8} {:<20.8}", "BUY".to_string().green(), trade.qty, trade.cost, total_cost);
 
         } else {
             let transaction_cost = trade.cost * trade.qty;
@@ -59,8 +81,14 @@ pub fn show_trades(trades: Vec<Trade>) {
         // balance = balance + (trade.cost * trade.qty);
     }
 
-    println!("\nOverall average buy price: {}", colored_balance(average_buy_price));
-    println!("Profit:\n\tlocked: {}", colored_balance(profit_locked));
+    let buys:Vec<Trade> = trades.clone().into_iter().filter(|t| t.buy ).collect();
+    let sells:Vec<Trade> = trades.clone().into_iter().filter(|t| !t.buy ).collect();
+    let profit = sum_qty(sells.clone()) - sum_qty(buys.clone());
+
+    println!("\nAvg Buy Price:   {:.8}", colored_balance(average_cost(buys)));
+    println!("Avg Sell Price:  {:.8}", colored_balance(average_cost(sells)));
+    println!("Total Amount:    {}", sum_qty(trades.clone()));
+    println!("Total Cost:      {:.8}", sum_cost(trades.clone()));
 }
 
 pub fn show_prices(prices: Prices) {
@@ -76,7 +104,7 @@ pub fn show_prices(prices: Prices) {
 //     println!("\nTotal Profit: {}", profit);
 // }
 
-pub fn show_funds(funds: Vec<Balance>, current_prices: Prices) {
+pub fn show_funds(funds: Vec<CoinAsset>, current_prices: Prices) {
     println!("\nBalances");
     println!("========");
     let mut total_btc = 0.0_f64;
@@ -86,33 +114,33 @@ pub fn show_funds(funds: Vec<Balance>, current_prices: Prices) {
     // let btc_value = current_prices.get("BTC").expect(&format!("BTCUSDT to be present in current prices: {:?}", current_prices));
     println!("{}", format!("{:8}\t{:16} \t{}\t{}", "Coin", "Total", "Value BTC", "Current Price").bold());
 
-    for (symbol, total, _locked) in funds {
+    for asset in funds {
 
         // let locked_str = if locked > 0.0 {
         //     format!("({} in orders)", locked)
         // } else { "".to_string() };
 
-        if total >= 1.0 || symbol == "BTC" {
+        if asset.amount >= 1.0 || asset.symbol == "BTC" {
 
-            let btc_value:f64 = if symbol != "BTC" {
+            let btc_value:f64 = if asset.symbol != "BTC" {
                 *current_prices
-                    .get(&format!("{}BTC", symbol))
-                    .expect(&format!("{}BTC to be present in current prices: {:?}", symbol, current_prices))
+                    .get(&format!("{}BTC", asset.symbol))
+                    .expect(&format!("{}BTC to be present in current prices: {:?}", asset.symbol, current_prices))
             } else {
                 *current_prices
                     .get("BTCUSDT")
                     .expect(&format!("BTCUSDT to be present in current prices: {:?}", current_prices))
             };
 
-            let coin_value_in_btc = if symbol != "BTC" {
-                total_btc += total * btc_value;
-                format!("{:.3} btc", total * btc_value)
+            let coin_value_in_btc = if asset.symbol != "BTC" {
+                total_btc += asset.amount * btc_value;
+                format!("{:.3} btc", asset.amount * btc_value)
             } else {
-                total_btc += total;
+                total_btc += asset.amount;
                 format!("${:.2}", btc_value)
             };
 
-            println!("{:8}\t{:16} \t{}\t{:.8}", symbol.yellow(), total, coin_value_in_btc, btc_value);
+            println!("{:8}\t{:16} \t{}\t{:.8}", asset.symbol.yellow(), asset.amount, coin_value_in_btc, btc_value);
         }
     }
     println!("\nTotal BTC: {}", total_btc);

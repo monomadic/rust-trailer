@@ -6,7 +6,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 pub struct Bot {
-    coin: String,
+    symbol: String,
     // entries: Vec<(f64)>, // positions at which to enter the market
 }
 
@@ -14,10 +14,12 @@ impl Bot {
     pub fn run(&self) {
         println!("bot started.");
         let current_position = 0.0_f64;
+
+        ::exchanges::binance::ws(self.symbol.clone());
     }
 
     pub fn backtest(&self, prices: Vec<f64>) {
-        println!("backtesting bot on coin: {}", self.coin);
+        println!("backtesting bot on coin: {}", self.symbol);
 
         let mut ratelimit = ratelimit::Builder::new()
             .capacity(1) //number of tokens the bucket will hold
@@ -25,7 +27,7 @@ impl Bot {
             .interval(Duration::new(1, 0)) //add quantum tokens every 1 second
             .build();
 
-        let mut handle = ratelimit.make_handle();
+        let handle = ratelimit.make_handle();
         thread::spawn(move || { ratelimit.run() });
 
         // launch threads
@@ -46,7 +48,7 @@ impl Bot {
 
     pub fn load_config(_config_file: String) -> Self {
         Self {
-            coin: "BTC".to_string(),
+            symbol: "icxbtc".to_string(),
             // entries
         }
     }

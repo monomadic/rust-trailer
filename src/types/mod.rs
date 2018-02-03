@@ -9,8 +9,20 @@ pub enum TradeType {
     Sell,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Order {
+    pub id: String,
+    pub symbol: String,
+    pub order_type: String,
+    pub amount: f64,
+    pub price: f64,
+}
+
+pub struct CoinAsset {
+    pub symbol: String,
+    pub amount: f64,
+    pub locked: f64,
+    pub exchange: String,
 }
 
 // #[cfg(test)]
