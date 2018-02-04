@@ -10,18 +10,18 @@ use docopt::Docopt;
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 const USAGE: &'static str = "
 Usage:
-  trailer binance funds
-  trailer binance ls <coin>
-  trailer binance buckets <coin>
-  trailer binance all
-  trailer binance trades
-  trailer binance orders
-  trailer bittrex funds
-  trailer bittrex prices
-  trailer bittrex orders
-  trailer bot run
-  trailer bot backtest <csv>
-  trailer caps
+  trade binance funds
+  trade binance ls <coin>
+  trade binance buckets <coin>
+  trade binance all
+  trade binance trades
+  trade binance orders
+  trade bittrex funds
+  trade bittrex prices
+  trade bittrex orders
+  trade bot run
+  trade bot backtest <csv>
+  trade caps
 
 Options:
   -h --help     Show this screen.

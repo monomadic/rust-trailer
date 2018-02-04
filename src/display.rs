@@ -40,53 +40,62 @@ pub fn show_buckets(buckets: Vec<TradeBucket>) {
 pub fn show_trades(trades: Vec<Trade>) {
     println!("{}", "\nTrade History".to_string().yellow());
 
-    let mut balance = 0.0_f64;
+    // let mut balance = 0.0_f64;
     let mut total_cost = 0.0_f64;
-    let mut average_buy_price = 0.0_f64;
-    let mut profit_locked = 0.0_f64;
+    // let mut average_buy_price = 0.0_f64;
+    // let mut profit_locked = 0.0_f64;
     // let mut profit_potential = 0.0_f64;
 
-    println!("{:<8} {:<8} {:<20} {:<20}", "", "Qty", "Price", "Cost");
+
+    println!("{:<8} {:<8} {:<20} {:<20} {:<20}", "", "Qty", "Price", "Cost", "Acc Cost");
     // calculate all profits so far
     for trade in group_trades(trades.clone()) {
+        let mut buy_display;
+
         if trade.buy {
             // println!("pre buy: total_cost {} balance {}", total_cost, balance);
-            let transaction_cost = trade.cost * trade.qty;
+            // let transaction_cost = trade.cost * trade.qty;
             total_cost += trade.cost * trade.qty;
-            balance += trade.qty;
+            // balance += trade.qty;
 
-            average_buy_price = total_cost / balance;
+            // average_buy_price = total_cost / balance;
 
             // println!("{}", &format!("\tbalance: {}\t transaction_cost: {}\t total cost: {}\t average_buy_price: {}", balance, transaction_cost, total_cost, average_buy_price).green());
 
-            println!("{:<8} {:<8} {:<20.8} {:<20.8}", "BUY".to_string().green(), trade.qty, trade.cost, total_cost);
+            buy_display = "BUY".to_string().green();
+            // println!("{:<8.2} {:<8} {:<20.8} {:<20.8} {:<20.8}", "BUY".to_string().green(), trade.qty, trade.cost, (trade.qty * trade.cost), total_cost);
 
         } else {
-            let transaction_cost = trade.cost * trade.qty;
-            let profit_in_btc = total_cost - transaction_cost;
-            let profit_ratio = trade.qty / balance;
+            // let transaction_cost = trade.cost * trade.qty;
+            // let profit_in_btc = total_cost - transaction_cost;
+            // let profit_ratio = trade.qty / balance;
 
-            // println!("PROFIT MADE: {:.4} btc, sold {}%", profit_in_btc, (100.0 * profit_ratio) as i32);
+            // // println!("PROFIT MADE: {:.4} btc, sold {}%", profit_in_btc, (100.0 * profit_ratio) as i32);
 
-            total_cost = total_cost * (1. - profit_ratio); // reduction of total cost by % of purchase
-            balance -= trade.qty;
-            if balance == 0. {
-                profit_locked += profit_in_btc;
-            }
+            // total_cost = total_cost * (1. - profit_ratio); // reduction of total cost by % of purchase
+            // balance -= trade.qty;
+            // if balance == 0. {
+            //     profit_locked += profit_in_btc;
+            // }
+
+            total_cost -= trade.cost * trade.qty;
 
             // println!("{}", &format!("\tbalance: {}\t profit_ratio: {}\t transaction_cost: -{}\t total cost: {}\t average_buy_price: {}", balance, profit_ratio, transaction_cost, total_cost, average_buy_price).red());
 
-            println!("{}\t {} at ₿{} for a profit of ₿{}", "SELL".to_string().red(), trade.qty, trade.cost, profit_in_btc);
+            // println!("{:<8.2} {:<8} {:<20.8} {:<20.8} {:<20.8}", "SELL".to_string().red(), trade.qty, trade.cost, (trade.qty * trade.cost), total_cost);
+            buy_display = "SELL".to_string().red();
         }
         // balance = balance + (trade.cost * trade.qty);
+        println!("{:<8} {:<8.2} {:<20.8} {:<20.8} {:<20.8}", buy_display, trade.qty, trade.cost, (trade.qty * trade.cost), total_cost);
     }
+
 
     let buys:Vec<Trade> = trades.clone().into_iter().filter(|t| t.buy ).collect();
     let sells:Vec<Trade> = trades.clone().into_iter().filter(|t| !t.buy ).collect();
     let profit = sum_qty(sells.clone()) - sum_qty(buys.clone());
 
-    println!("\nAvg Buy Price:   {:.8}", colored_balance(average_cost(buys)));
-    println!("Avg Sell Price:  {:.8}", colored_balance(average_cost(sells)));
+    println!("\nAvg Buy Price:   {:<20.8}", average_cost(buys));
+    println!("Avg Sell Price:  {:<20.8}", average_cost(sells));
     println!("Total Amount:    {}", sum_qty(trades.clone()));
     println!("Total Cost:      {:.8}", sum_cost(trades.clone()));
 }
