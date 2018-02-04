@@ -68,6 +68,7 @@ pub fn run_docopt() -> io::Result<()> {
                     println!("getting prices...");
                     let prices = bittrex.prices();
 
+                    ::display::show_prices(prices);
                 }
 
                 if args.get_bool("funds") {

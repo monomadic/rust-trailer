@@ -1,7 +1,9 @@
 [binance]
     api_key = ""
     secret_key = ""
+    watch = ["NEOBTC"]
 
 [bittrex]
     api_key = ""
     secret_key = ""
+    watch = ["NEOBTC"]

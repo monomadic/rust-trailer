@@ -75,9 +75,8 @@ fn from_str<'de, T, D>(deserializer: D) -> Result<T, D::Error>
 pub fn all() -> Vec<CoinCap> {
     let client = reqwest::Client::new();
     let mut response = reqwest::get("https://api.coinmarketcap.com/v1/ticker?limit=0").expect("/v1/ticker to respond correctly");
+    assert!(response.status().is_success());
     let body = response.text().expect("json response to have text");
 
-    let caps: Vec<CoinCap> = serde_json::from_str(&body).expect("json to deserialise");
-
-    caps
+    serde_json::from_str(&body).expect("json to deserialise")
 }
