@@ -122,18 +122,18 @@ pub fn show_funds(funds: Funds, prices: Prices) {
         None => 0.0,
     };
 
-    println!("{}", format!("{:8}\t{:8} \t{:16}\t{:16}", "Coin", "Total", "Value BTC", "Current Price"));
+    println!("{}", format!("{:8}\t{:8} \t{:8}\t{:16}", "Coin", "Total", "Value BTC", "Current Price"));
 
     if let Some(btc) = funds.clone().btc {
-        println!("{:<8}\t{:<8.2} \t{:<16.3}\t{:<16.8}", "BTC".blue(), btc.amount, btc.amount, btc_price);
+        println!("{:<8}\t{:<8.2} \t{:<8.2}\t{:<16.8}", "BTC".blue(), btc.amount, (btc_price / btc.amount), btc_price);
     }
 
     for fiat in funds.clone().fiat {
-        println!("{:<8}\t{:<8.2} \t{:<16.3}\t{:<16.8}", fiat.symbol.green(), fiat.amount, fiat.amount, fiat.amount);
+        println!("{:<8}\t{:<8.2} \t{:<8.2}\t{:<16.8}", fiat.symbol.green(), fiat.amount, fiat.amount, "-");
     }
 
     for altcoin in funds.clone().alts {
-        println!("{:<8}\t{:<8.2} \t{:<16.3}\t{:<16.8}", altcoin.symbol.yellow(), altcoin.amount, altcoin.amount * price_in_btc(altcoin.symbol.clone(), prices.clone()), price_in_btc(altcoin.symbol, prices.clone()));
+        println!("{:<8}\t{:<8.2} \t{:<8.2}\t{:<16.8}", altcoin.symbol.yellow(), altcoin.amount, altcoin.amount * price_in_btc(altcoin.symbol.clone(), prices.clone()), price_in_btc(altcoin.symbol, prices.clone()));
     }
 
     println!("\nTotal BTC: {}", funds.total_btc(btc_price, prices));

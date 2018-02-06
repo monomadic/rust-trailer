@@ -31,8 +31,8 @@ pub struct Funds {
 impl Funds {
     pub fn total_btc(&self, btc_price: f64, prices: ::types::Prices) -> f64 {
         let alts:f64 = self.alts.iter().map(|a| { a.amount * price_in_btc(a.clone().symbol, prices.clone()) }).sum();
-        let fiat:f64 = self.fiat.iter().map(|a| btc_price / a.amount).sum();
-        (self.btc.clone().unwrap_or_default().amount * btc_price) + alts + fiat
+        let fiat:f64 = self.fiat.iter().map(|a| a.amount / btc_price).sum();
+        self.btc.clone().unwrap_or_default().amount + alts + fiat
     }
 }
 
