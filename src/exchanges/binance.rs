@@ -99,11 +99,13 @@ impl BinanceAPI {
         p
     }
 
-    pub fn orders(&self, symbols: Vec<String>) -> Vec<Order> {
+    pub fn cancel_orders(&self) {}
+
+    pub fn orders(&self, symbols: Vec<&str>) -> Vec<Order> {
         let mut orders = Vec::new();
 
         for symbol in symbols {
-            match self.account.get_open_orders(symbol) {
+            match self.account.get_open_orders(symbol.to_string()) {
                 Ok(o) => {
                     orders.push(Order{
                         id: "0.,".to_string(),

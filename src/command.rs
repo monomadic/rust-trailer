@@ -15,10 +15,12 @@ Usage:
   trade binance buckets <coin>
   trade binance all
   trade binance trades
-  trade binance orders
+  trade binance orders cancel
+  trade binance orders ls <pair>
   trade bittrex funds
   trade bittrex prices
   trade bittrex orders
+  trade bittrex history
   trade bot run
   trade bot backtest <csv>
   trade caps
@@ -73,7 +75,7 @@ pub fn run_docopt() -> io::Result<()> {
 
                 if args.get_bool("funds") {
                     println!("getting funds...");
-                    let funds = bittrex.funds();
+                    let funds = ::types::sort_funds(bittrex.funds());
 
                     println!("getting prices...");
                     let prices = bittrex.prices();
@@ -89,6 +91,14 @@ pub fn run_docopt() -> io::Result<()> {
                     ::display::show_orders(orders);
                 }
 
+
+
+                if args.get_bool("history") {
+                    println!("getting history...");
+                    let history = bittrex.history();
+
+                    ::display::show_orders(history);
+                }
             },
             None => {
                 println!("No bittrex keys inside .config.toml!");
@@ -111,7 +121,7 @@ pub fn run_docopt() -> io::Result<()> {
 
                 if args.get_bool("funds") {
                     println!("getting funds...");
-                    let funds = binance.funds();
+                    let funds = ::types::sort_funds(binance.funds());
 
                     println!("getting prices...");
                     let prices = binance.prices();
@@ -121,7 +131,15 @@ pub fn run_docopt() -> io::Result<()> {
 
                 if args.get_bool("orders") {
                     println!("getting orders...");
-                    let orders = binance.orders(vec!["NEO".to_string()]);
+                    let pairs = args.get_vec("pairs");
+                    let orders = binance.orders(pairs);
+
+                    // ::display::show_orders(orders);
+                }
+
+                if args.get_bool("orders") {
+                    println!("attempting to cancel orders...");
+                    binance.cancel_orders();
 
                     // ::display::show_orders(orders);
                 }
@@ -144,7 +162,7 @@ pub fn run_docopt() -> io::Result<()> {
                         let trades = binance.trades(coin);
                         ::display::show_trades(trades);
 
-                        let orders = binance.orders(vec![coin.to_string()]);
+                        let orders = binance.orders(vec![coin]);
                         ::display::show_orders(orders);
                     }
                 }

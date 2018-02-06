@@ -1,7 +1,15 @@
 #![allow(dead_code)]
 
+use std::collections::HashMap;
+
 mod trades;
 pub use self::trades::*;
+
+mod funds;
+pub use self::funds::*;
+
+pub type Prices = HashMap<String, f64>;
+pub type Balance = (String, f64, f64);
 
 #[derive(Debug, Clone, Copy)]
 pub enum TradeType {
@@ -16,13 +24,6 @@ pub struct Order {
     pub order_type: String,
     pub amount: f64,
     pub price: f64,
-}
-
-pub struct CoinAsset {
-    pub symbol: String,
-    pub amount: f64,
-    pub locked: f64,
-    pub exchange: String,
 }
 
 // #[cfg(test)]

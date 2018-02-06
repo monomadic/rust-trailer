@@ -3,7 +3,7 @@
 
 use ratelimit;
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::{Duration};
 
 pub struct Bot {
     symbol: String,

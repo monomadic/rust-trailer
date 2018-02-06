@@ -71,7 +71,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "bittrex-api"
 version = "0.3.2"
-source = "git+https://github.com/robsaunders/bittrex-api.git#aa534a42559ad6f01828df429c3a9d0b15142170"
+source = "git+https://github.com/robsaunders/bittrex-api.git#8de1c1c0bd472bfffa5ef9ce607adc9f1e5c4dd2"
 dependencies = [
  "generic-array 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "hmac 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",

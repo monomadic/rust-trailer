@@ -62,7 +62,7 @@ impl BittrexAPI {
         orders
     }
 
-    pub fn order_history(&self) -> Vec<Order> {
+    pub fn history(&self) -> Vec<Order> {
         let mut orders = Vec::new();
 
         match self.client.get_order_history() {

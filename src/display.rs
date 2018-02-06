@@ -2,11 +2,7 @@
 #![allow(unused_variables)]
 
 use colored::*;
-use std::collections::HashMap;
 use ::types::*;
-
-type Prices = HashMap<String, f64>;
-type Balance = (String, f64, f64);
 
 pub fn colored_balance(num: f64) -> String {
     if num > 0.0 {
@@ -19,7 +15,7 @@ pub fn colored_balance(num: f64) -> String {
 pub fn show_orders(orders: Vec<Order>) {
     println!("{}", "\nOpen Orders".to_string().yellow());
     for order in orders {
-        println!("{:20}\t{:20}\t{:20}\t{:20}",
+        println!("{:20}\t{:20}\t{:20.8}\t{:20.2}",
             order.symbol, order.order_type, order.price, order.amount);
     }
 }
@@ -35,6 +31,10 @@ pub fn show_buckets(buckets: Vec<TradeBucket>) {
             colored_balance(bucket.average_sell)
         );
     }
+}
+
+pub fn show_history(history: Vec<Order>) {
+    println!("{:?}", history);
 }
 
 pub fn show_trades(trades: Vec<Trade>) {
@@ -113,44 +113,83 @@ pub fn show_prices(prices: Prices) {
 //     println!("\nTotal Profit: {}", profit);
 // }
 
-pub fn show_funds(funds: Vec<CoinAsset>, current_prices: Prices) {
+pub fn show_funds(funds: Funds, prices: Prices) {
     println!("\nBalances");
     println!("========");
-    let mut total_btc = 0.0_f64;
 
-    // println!("{:?}", funds);
+    let btc_price:f64 = match prices.get("BTCUSDT") {
+        Some(p) => *p,
+        None => 0.0,
+    };
 
-    // let btc_value = current_prices.get("BTC").expect(&format!("BTCUSDT to be present in current prices: {:?}", current_prices));
-    println!("{}", format!("{:8}\t{:16} \t{}\t{}", "Coin", "Total", "Value BTC", "Current Price").bold());
+    println!("{}", format!("{:8}\t{:8} \t{:16}\t{:16}", "Coin", "Total", "Value BTC", "Current Price"));
 
-    for asset in funds {
-
-        // let locked_str = if locked > 0.0 {
-        //     format!("({} in orders)", locked)
-        // } else { "".to_string() };
-
-        if asset.amount >= 1.0 || asset.symbol == "BTC" {
-
-            let btc_value:f64 = if asset.symbol != "BTC" {
-                *current_prices
-                    .get(&format!("{}BTC", asset.symbol))
-                    .expect(&format!("{}BTC to be present in current prices: {:?}", asset.symbol, current_prices))
-            } else {
-                *current_prices
-                    .get("BTCUSDT")
-                    .expect(&format!("BTCUSDT to be present in current prices: {:?}", current_prices))
-            };
-
-            let coin_value_in_btc = if asset.symbol != "BTC" {
-                total_btc += asset.amount * btc_value;
-                format!("{:.3} btc", asset.amount * btc_value)
-            } else {
-                total_btc += asset.amount;
-                format!("${:.2}", btc_value)
-            };
-
-            println!("{:8}\t{:16} \t{}\t{:.8}", asset.symbol.yellow(), asset.amount, coin_value_in_btc, btc_value);
-        }
+    if let Some(btc) = funds.clone().btc {
+        println!("{:<8}\t{:<8.2} \t{:<16.3}\t{:<16.8}", "BTC".blue(), btc.amount, btc.amount, btc_price);
     }
-    println!("\nTotal BTC: {}", total_btc);
+
+    for fiat in funds.clone().fiat {
+        println!("{:<8}\t{:<8.2} \t{:<16.3}\t{:<16.8}", fiat.symbol.green(), fiat.amount, fiat.amount, fiat.amount);
+    }
+
+    for altcoin in funds.clone().alts {
+        println!("{:<8}\t{:<8.2} \t{:<16.3}\t{:<16.8}", altcoin.symbol.yellow(), altcoin.amount, altcoin.amount * price_in_btc(altcoin.symbol.clone(), prices.clone()), price_in_btc(altcoin.symbol, prices.clone()));
+    }
+
+    println!("\nTotal BTC: {}", funds.total_btc(btc_price, prices));
 }
+
+// pub fn show_funds(funds: Vec<CoinAsset>, current_prices: Prices) {
+//     println!("\nBalances");
+//     println!("========");
+//     let mut total_btc = 0.0_f64;
+
+//     // println!("{:?}", funds);
+
+//     // let btc_value = current_prices.get("BTC").expect(&format!("BTCUSDT to be present in current prices: {:?}", current_prices));
+//     println!("{}", format!("{:8}\t{:16} \t{}\t{}", "Coin", "Total", "Value BTC", "Current Price").bold());
+
+//     for asset in funds {
+
+//         if asset.symbol == "BTC" {
+//             *current_prices
+//                 .get(&format!("{}BTC", asset.symbol))
+//                 .expect(&format!("{}BTC to be present in current prices: {:?}", asset.symbol, current_prices))
+
+//         } else if (asset.symbol == "USDT" || asset.symbol == "USD") {
+
+//         } else {
+//             if asset.amount >= 1.0 {
+
+//             }
+//         }
+
+//         // let locked_str = if locked > 0.0 {
+//         //     format!("({} in orders)", locked)
+//         // } else { "".to_string() };
+
+//         if asset.amount >= 1.0 || asset.symbol == "BTC" {
+
+//             let btc_value:f64 = if (asset.symbol != "BTC" && asset.symbol != "USDT") {
+//                 *current_prices
+//                     .get(&format!("{}BTC", asset.symbol))
+//                     .expect(&format!("{}BTC to be present in current prices: {:?}", asset.symbol, current_prices))
+//             } else {
+//                 *current_prices
+//                     .get("BTCUSDT")
+//                     .expect(&format!("BTCUSDT to be present in current prices: {:?}", current_prices))
+//             };
+
+//             let coin_value_in_btc = if asset.symbol != "BTC" {
+//                 total_btc += asset.amount * btc_value;
+//                 format!("{:.3} btc", asset.amount * btc_value)
+//             } else {
+//                 total_btc += asset.amount;
+//                 format!("${:.2}", btc_value)
+//             };
+
+//             println!("{:8}\t{:16.2} \t{:.3}\t{:.8}", asset.symbol.yellow(), asset.amount, coin_value_in_btc, btc_value);
+//         }
+//     }
+//     println!("\nTotal BTC: {}", total_btc);
+// }
