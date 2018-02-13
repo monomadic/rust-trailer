@@ -4,6 +4,10 @@
 use colored::*;
 use ::types::*;
 
+pub fn show_error(error: ::error::TrailerError) {
+    println!("{:?}", error);
+}
+
 pub fn colored_balance(num: f64) -> String {
     if num > 0.0 {
         format!("{}{}", num.to_string().green(), "".white())
@@ -136,7 +140,8 @@ pub fn show_funds(funds: Funds, prices: Prices) {
         println!("{:<8}\t{:<8.2} \t{:<8.2}\t{:<16.8}", altcoin.symbol.yellow(), altcoin.amount, altcoin.amount * price_in_btc(altcoin.symbol.clone(), prices.clone()), price_in_btc(altcoin.symbol, prices.clone()));
     }
 
-    println!("\nTotal BTC: {}", funds.total_btc(btc_price, prices));
+    println!("\nTotal BTC: {}", funds.total_btc(btc_price, prices.clone()));
+    println!("Total USD: {}\n", funds.total_btc(btc_price, prices) * btc_price);
 }
 
 // pub fn show_funds(funds: Vec<CoinAsset>, current_prices: Prices) {

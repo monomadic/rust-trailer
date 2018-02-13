@@ -16,10 +16,10 @@ Usage:
   trade binance all
   trade binance trades
   trade binance orders cancel
-  trade binance orders ls <pair>
+  trade binance orders ls <pairs>
   trade bittrex funds
   trade bittrex prices
-  trade bittrex orders
+  trade bittrex orders ls
   trade bittrex history
   trade bot run
   trade bot backtest <csv>
@@ -68,9 +68,11 @@ pub fn run_docopt() -> io::Result<()> {
 
                 if args.get_bool("prices") {
                     println!("getting prices...");
-                    let prices = bittrex.prices();
 
-                    ::display::show_prices(prices);
+                    match bittrex.prices() {
+                        Ok(prices) => ::display::show_prices(prices),
+                        Err(error) => ::display::show_error(error),
+                    };
                 }
 
                 if args.get_bool("funds") {
@@ -78,17 +80,35 @@ pub fn run_docopt() -> io::Result<()> {
                     let funds = ::types::sort_funds(bittrex.funds());
 
                     println!("getting prices...");
-                    let prices = bittrex.prices();
-                    // println!("{:?}", prices);
-
-                    ::display::show_funds(funds, prices);
+                    match bittrex.prices() {
+                        Ok(prices) => {
+                            ::display::show_prices(prices.clone());
+                            ::display::show_funds(funds, prices);
+                        },
+                        Err(error) => ::display::show_error(error),
+                    };
                 }
 
-                if args.get_bool("orders") {
-                    println!("getting orders...");
-                    let orders = bittrex.orders();
+                // if args.get_bool("orders") {
+                //     println!("getting orders...");
+                //     let orders = bittrex.orders();
 
-                    ::display::show_orders(orders);
+                //     ::display::show_orders(orders);
+                // }
+
+                if args.get_bool("orders") {
+
+                    if args.get_bool("ls") {
+                        println!("getting orders...");
+                        let orders = bittrex.orders();
+                        ::display::show_orders(orders);
+                    }
+
+                    // if args.get_bool("cancel") {
+                    //     println!("attempting to cancel orders...");
+                    //     binance.cancel_orders();
+                    // }
+
                 }
 
 
@@ -114,9 +134,11 @@ pub fn run_docopt() -> io::Result<()> {
 
                 if args.get_bool("all") {
                     println!("getting prices...");
-                    let prices = binance.prices();
 
-                    ::display::show_prices(prices);
+                    match binance.prices() {
+                        Ok(prices) => ::display::show_prices(prices),
+                        Err(error) => ::display::show_error(error),
+                    };
                 }
 
                 if args.get_bool("funds") {
@@ -124,24 +146,28 @@ pub fn run_docopt() -> io::Result<()> {
                     let funds = ::types::sort_funds(binance.funds());
 
                     println!("getting prices...");
-                    let prices = binance.prices();
-
-                    ::display::show_funds(funds, prices);
+                    match binance.prices() {
+                        Ok(prices) => {
+                            ::display::show_prices(prices.clone());
+                            ::display::show_funds(funds, prices);
+                        }
+                        Err(error) => ::display::show_error(error),
+                    };                    
                 }
 
                 if args.get_bool("orders") {
-                    println!("getting orders...");
-                    let pairs = args.get_vec("pairs");
-                    let orders = binance.orders(pairs);
 
-                    // ::display::show_orders(orders);
-                }
+                    if args.get_bool("ls") {
+                        println!("getting orders...");
+                        let pairs = args.get_vec("pairs");
+                        let orders = binance.orders(pairs);
+                    }
 
-                if args.get_bool("orders") {
-                    println!("attempting to cancel orders...");
-                    binance.cancel_orders();
+                    if args.get_bool("cancel") {
+                        println!("attempting to cancel orders...");
+                        binance.cancel_orders();
+                    }
 
-                    // ::display::show_orders(orders);
                 }
 
                 // if args.get_bool("trades") {

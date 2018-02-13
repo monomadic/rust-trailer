@@ -11,6 +11,8 @@ use binance::websockets::*;
 use std::collections::HashMap;
 
 use ::types::*;
+use ::error::*;
+use ::exchanges::ExchangeAPI;
 
 pub struct BinanceAPI {
     account: Account,
@@ -31,6 +33,68 @@ impl MarketEventHandler for BinanceWebSocketHandler {
             "- Symbol: {}, price: {}, qty: {}",
             event.symbol, event.price, event.qty
         );
+    }
+}
+
+impl ExchangeAPI for BinanceAPI {
+
+    fn connect(api_key: &str, secret_key: &str) -> Self {
+        Self {
+            account: Binance::new(
+                Some(api_key.to_string()),
+                Some(secret_key.to_string())
+            ),
+            market: Market::new(None, None),
+        }
+    }
+
+    fn funds(&self) -> Result<Vec<CoinAsset>, TrailerError> {
+        let mut funds = Vec::new();
+        let result = self.account.get_account()?;
+
+        for balance in result.balances {
+            funds.push(CoinAsset {
+                symbol: balance.asset,
+                amount: balance.free.parse::<f64>().unwrap() + balance.locked.parse::<f64>().unwrap(),
+                locked: balance.locked.parse::<f64>().unwrap(),
+                exchange: "Binance".to_string(),
+            })
+        }
+
+        Ok(funds)
+    }
+
+    fn prices(&self) -> Result<Prices, TrailerError> {
+        let mut p = HashMap::new();
+        let market_prices = self.market.get_all_prices()?;
+
+        match market_prices {
+            ::binance::model::Prices::AllPrices(prices) => {
+                for price in prices {
+                    p.insert(
+                        price.symbol,
+                        price.price.parse::<f64>().unwrap());
+                }
+            }
+        }
+
+        Ok(p)
+    }
+
+    fn limit_buy(&self, symbol: &str, amount: u32, price: f64) -> Result<(), TrailerError> {
+        let result = self.account.limit_buy(symbol.into(), amount, price)?;
+        Ok(())
+    }
+
+}
+
+use binance::errors::Error as BinanceError;
+impl From<BinanceError> for ::error::TrailerError {
+    fn from(error: BinanceError) -> Self {
+        ::error::TrailerError {
+            error_type: ::error::TrailerErrorType::ImportError,
+            message: error.description().to_string(),
+        }
     }
 }
 
@@ -59,46 +123,6 @@ impl BinanceAPI {
     pub fn set_limit_order(symbol: &str, price: u64) {
     }
 
-    pub fn funds(&self) -> Vec<CoinAsset> {
-        let mut funds = Vec::new();
-
-        match self.account.get_account() {
-            Ok(answer) => {
-                for balance in answer.balances {
-                    funds.push(CoinAsset {
-                        symbol: balance.asset,
-                        amount: balance.free.parse::<f64>().unwrap() + balance.locked.parse::<f64>().unwrap(),
-                        locked: balance.locked.parse::<f64>().unwrap(),
-                        exchange: "Binance".to_string(),
-                    })
-                }
-            },
-            Err(e) => println!("Error: {}", e),
-        };
-
-        funds
-    }
-
-    pub fn prices(&self) -> HashMap<String, f64> {
-        let mut p = HashMap::new();
-        match self.market.get_all_prices() {
-            Ok(answer) => {
-                match answer {
-                    ::binance::model::Prices::AllPrices(prices) => {
-                        for price in prices {
-                            // println!("{}\t{}", price.symbol.yellow(), price.price);
-                            p.insert(
-                                price.symbol,
-                                price.price.parse::<f64>().unwrap());
-                        }
-                    }
-                }
-            },
-            Err(e) => println!("Error: {}", e),
-        };
-        p
-    }
-
     pub fn cancel_orders(&self) {}
 
     pub fn orders(&self, symbols: Vec<&str>) -> Vec<Order> {
@@ -121,42 +145,6 @@ impl BinanceAPI {
         orders
     }
 
-    // pub fn order_history(&self, symbol: &str) -> Vec<Order> {
-    //     let mut orders = Vec::new();
-
-    //     match self.account.get_open_orders(symbol.to_string()) {
-    //         Ok(o) => {
-    //             // orders.push(Order{});
-    //             println!("{:?}", o);
-    //         },
-    //         Err(e) => println!("Error: {}", e),
-    //     };
-
-    //     orders
-    // }
-
-    // pub fn all_trades(&self) {
-    //     match self.account.trade_history(coin.into()) {
-    //         Ok(answer) => {
-    //             println!("\nTrade History: {}", coin);
-    //             let mut total = 0.0f64;
-    //             for trade in answer {
-    //                 // let price = trade.price.parse::<f64>().unwrap();
-    //                 let qty = trade.qty.parse::<f64>().unwrap();
-    //                 // println!("{:?}", trade);
-    //                 if trade.is_buyer {
-    //                     total = total + qty;
-    //                     println!("+ {:12} {:12} b: {:.2}", trade.qty.green(), trade.price, total);
-    //                 } else {
-    //                     total = total - qty;
-    //                     println!("- {:12} {:12} b: {:.2}", trade.qty.red(), trade.price, total);
-    //                 }
-    //             }
-    //         },
-    //         Err(e) => println!("Error: {}", e),
-    //     }
-    // }
-
     pub fn trades(&self, coin: &str) -> Vec<Trade> {
         match self.account.trade_history(coin.into()) {
             Ok(answer) => {
@@ -166,31 +154,6 @@ impl BinanceAPI {
 
                     Trade { cost: cost, qty: qty, buy: trade.is_buyer }
                 }).collect()
-                // let mut trades = Vec::new();
-
-                // for trade in answer {
-                //     let cost = trade.price.parse::<f64>().unwrap();
-                //     let qty = trade.qty.parse::<f64>().unwrap();
-                //     // println!("{:?}", trade);
-                //     if trade.is_buyer {
-                //         total_amount = total_amount + qty;
-                //         total_cost = total_cost + cost;
-
-                //         total_buy_cost = total_buy_cost + (qty * cost);
-                //         total_buy_amount = total_buy_amount + qty;
-                //         println!("+ {:12} {:12} b: {:.2}", trade.qty.green(), trade.price, total_amount);
-                //     } else {
-                //         total_amount = total_amount - qty;
-                //         total_cost = total_cost - cost;
-
-                //         total_sell_cost = total_sell_cost + (qty * cost);
-                //         total_sell_amount = total_sell_amount + qty;
-
-                //         println!("- {:12} {:12} b: {:.2}", trade.qty.red(), trade.price, total_amount);
-                //     }
-                // };
-
-                // trades
             },
             Err(e) => {
                 println!("Error: {}", e);
@@ -267,6 +230,3 @@ pub fn historic() {
     }
 }
 
-pub fn calculate_overall_position(prices: Vec<f64>) -> f64 {
-    0.0
-}

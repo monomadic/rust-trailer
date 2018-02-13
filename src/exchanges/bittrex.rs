@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use bittrex_api::BittrexClient;
+use bittrex::BittrexClient;
 use std::collections::HashMap;
 
 use ::types::*;
@@ -84,35 +84,22 @@ impl BittrexAPI {
         orders
     }
 
-    pub fn prices(&self) -> HashMap<String, f64> {
+    pub fn prices(&self) -> Result<Prices, ::error::TrailerError> {
+        let response = self.client.get_market_summaries()?;
         let mut p = HashMap::new();
-        match self.client.get_market_summaries() {
-            Ok(markets) => {
-                for market in markets {
-                    let split: Vec<&str> = market.market_name.split("-").collect();
-                    // print!("{:?} ", split);
-                    let pair_name = format!("{}{}", *split.last().unwrap(), *split.first().unwrap()); // dangerous, fix
-                    // print!("{} ", pair_name);
 
-                    p.insert(
-                        pair_name,
-                        market.last
-                    );
-                }
+        for market in response {
+            let split: Vec<&str> = market.market_name.split("-").collect();
+            // print!("{:?} ", split);
+            let pair_name = format!("{}{}", *split.last().unwrap(), *split.first().unwrap()); // dangerous, fix
+            // print!("{} ", pair_name);
 
-                // match answer {
-                //     ::binance::model::Prices::AllPrices(prices) => {
-                //         for price in prices {
-                //             // println!("{}\t{}", price.symbol.yellow(), price.price);
-                //             p.insert(
-                //                 price.market_currency,
-                //                 price.price.parse::<f64>().unwrap());
-                //         }
-                //     }
-                // }
-            },
-            Err(e) => println!("Error: {}", e),
-        };
-        p
+            p.insert(
+                pair_name,
+                market.last
+            );
+        }
+        
+        Ok(p)
     }
 }
