@@ -21,5 +21,8 @@ mod coinmarketcap;
 mod error;
 
 fn main() {
-    ::command::run_docopt().expect("success");
+    match ::command::run_docopt() {
+        Ok(_) => println!("done."),
+        Err(e) => ::display::show_error(e),
+    }
 }

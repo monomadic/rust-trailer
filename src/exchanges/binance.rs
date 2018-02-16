@@ -64,6 +64,10 @@ impl ExchangeAPI for BinanceAPI {
         Ok(funds)
     }
 
+    fn price(&self, symbol: &str) -> Result<f64, TrailerError> {
+        Ok(self.market.get_price(symbol)?)
+    }
+
     fn prices(&self) -> Result<Prices, TrailerError> {
         let mut p = HashMap::new();
         let market_prices = self.market.get_all_prices()?;
@@ -82,7 +86,9 @@ impl ExchangeAPI for BinanceAPI {
     }
 
     fn limit_buy(&self, symbol: &str, amount: u32, price: f64) -> Result<(), TrailerError> {
+        // println!("{:?} {:?} {:?}", symbol, amount, price);
         let result = self.account.limit_buy(symbol.into(), amount, price)?;
+        println!("{:?}", result);
         Ok(())
     }
 
@@ -119,9 +125,6 @@ pub fn connect(api_key: &str, secret_key: &str) -> BinanceAPI {
 }
 
 impl BinanceAPI {
-
-    pub fn set_limit_order(symbol: &str, price: u64) {
-    }
 
     pub fn cancel_orders(&self) {}
 
@@ -162,49 +165,49 @@ impl BinanceAPI {
         }
     }
 
-    pub fn show_trades(&self, coin: &str) {
+    // pub fn show_trades(&self, coin: &str) {
 
-        match self.account.trade_history(coin.into()) {
-            Ok(answer) => {
-                println!("\nTrade History: {}", coin);
-                let mut total_cost = 0.0_f64;
-                let mut total_amount = 0.0f64;
-                // let average_buy_price = 0.0_f64;
+    //     match self.account.trade_history(coin.into()) {
+    //         Ok(answer) => {
+    //             println!("\nTrade History: {}", coin);
+    //             let mut total_cost = 0.0_f64;
+    //             let mut total_amount = 0.0f64;
+    //             // let average_buy_price = 0.0_f64;
 
-                let mut total_buy_cost = 0.0_f64;
-                let mut total_buy_amount = 0.0_f64;
+    //             let mut total_buy_cost = 0.0_f64;
+    //             let mut total_buy_amount = 0.0_f64;
 
-                let mut total_sell_cost = 0.0_f64;
-                let mut total_sell_amount = 0.0_f64;
+    //             let mut total_sell_cost = 0.0_f64;
+    //             let mut total_sell_amount = 0.0_f64;
 
-                for trade in answer {
-                    let cost = trade.price.parse::<f64>().unwrap();
-                    let qty = trade.qty.parse::<f64>().unwrap();
-                    // println!("{:?}", trade);
-                    if trade.is_buyer {
-                        total_amount = total_amount + qty;
-                        total_cost = total_cost + cost;
+    //             for trade in answer {
+    //                 let cost = trade.price.parse::<f64>().unwrap();
+    //                 let qty = trade.qty.parse::<f64>().unwrap();
+    //                 // println!("{:?}", trade);
+    //                 if trade.is_buyer {
+    //                     total_amount = total_amount + qty;
+    //                     total_cost = total_cost + cost;
 
-                        total_buy_cost = total_buy_cost + (qty * cost);
-                        total_buy_amount = total_buy_amount + qty;
-                        println!("+ {:12} {:12} b: {:.2}", trade.qty.green(), trade.price, total_amount);
-                    } else {
-                        total_amount = total_amount - qty;
-                        total_cost = total_cost - cost;
+    //                     total_buy_cost = total_buy_cost + (qty * cost);
+    //                     total_buy_amount = total_buy_amount + qty;
+    //                     println!("+ {:12} {:12} b: {:.2}", trade.qty.green(), trade.price, total_amount);
+    //                 } else {
+    //                     total_amount = total_amount - qty;
+    //                     total_cost = total_cost - cost;
 
-                        total_sell_cost = total_sell_cost + (qty * cost);
-                        total_sell_amount = total_sell_amount + qty;
+    //                     total_sell_cost = total_sell_cost + (qty * cost);
+    //                     total_sell_amount = total_sell_amount + qty;
 
-                        println!("- {:12} {:12} b: {:.2}", trade.qty.red(), trade.price, total_amount);
-                    }
-                }
+    //                     println!("- {:12} {:12} b: {:.2}", trade.qty.red(), trade.price, total_amount);
+    //                 }
+    //             }
 
-                println!("\n{} average buy cost:\n\tall time: {}", coin, format!("{:.8}", total_buy_cost / total_buy_amount).green());
-                println!("\n{} average sell cost:\n\tall time: {}", coin, format!("{:.8}", total_sell_cost / total_sell_amount).red());
-            },
-            Err(e) => println!("Error: {}", e),
-        }
-    }
+    //             println!("\n{} average buy cost:\n\tall time: {}", coin, format!("{:.8}", total_buy_cost / total_buy_amount).green());
+    //             println!("\n{} average sell cost:\n\tall time: {}", coin, format!("{:.8}", total_sell_cost / total_sell_amount).red());
+    //         },
+    //         Err(e) => println!("Error: {}", e),
+    //     }
+    // }
 
     pub fn sell(&self, pair: &str, amount: u32, price: f64) {
         match self.account.limit_sell(pair.to_string(), amount, price) {
@@ -215,18 +218,18 @@ impl BinanceAPI {
 
 }
 
-pub fn historic() {
-    use binance::market::*;
-    let market: Market = Binance::new(None, None);
+// pub fn historic() {
+//     use binance::market::*;
+//     let market: Market = Binance::new(None, None);
 
-    match market.get_depth("BNBBTC".into()) {
-        Ok(answer) => println!("{:?}", answer),
-        Err(e) => println!("Error: {}", e),
-    }
+//     match market.get_depth("BNBBTC".into()) {
+//         Ok(answer) => println!("{:?}", answer),
+//         Err(e) => println!("Error: {}", e),
+//     }
 
-    match market.get_all_prices() {
-        Ok(answer) => println!("{:?}", answer),
-        Err(e) => println!("Error: {}", e),
-    }
-}
+//     match market.get_all_prices() {
+//         Ok(answer) => println!("{:?}", answer),
+//         Err(e) => println!("Error: {}", e),
+//     }
+// }
 

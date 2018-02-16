@@ -8,6 +8,7 @@ pub use self::trades::*;
 mod funds;
 pub use self::funds::*;
 
+pub type Price = (String, f64);
 pub type Prices = HashMap<String, f64>;
 pub type Balance = (String, f64, f64);
 

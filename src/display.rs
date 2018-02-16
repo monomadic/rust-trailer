@@ -5,7 +5,7 @@ use colored::*;
 use ::types::*;
 
 pub fn show_error(error: ::error::TrailerError) {
-    println!("{:?}", error);
+    println!("{}", format!("Error: {}", error.message).red());
 }
 
 pub fn colored_balance(num: f64) -> String {
@@ -105,7 +105,15 @@ pub fn show_trades(trades: Vec<Trade>) {
 }
 
 pub fn show_prices(prices: Prices) {
+    println!("Pair");
+    for price in prices.clone() {
+        println!("{}\t{}", price.0, price.1);
+    }
     println!("Total Pairs: {}", prices.len());
+}
+
+pub fn show_price(price: Price) {
+    println!("{}\t{}", price.0, price.1);
 }
 
 // pub fn show_total_profits(funds: Vec<(String, f64, f64)>) {

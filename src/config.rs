@@ -15,9 +15,17 @@ pub struct APIConfig {
     pub secret_key: String,
 }
 
-pub fn read() -> Config {
-    let conf:Config = toml::from_str(&str_from_file(".config.toml")).expect(".config.toml to parse correctly");
-    conf
+use error::*;
+pub fn read() -> Result<Config, TrailerError> {
+    use std::error::Error;
+    
+    match toml::from_str(&str_from_file(".config.toml")) {
+        Ok(conf) => Ok(conf),
+        Err(e) => Err(TrailerError {
+            error_type: TrailerErrorType::APIError,
+            message: format!("Error loading .config.toml: {}", e.description()),
+        })
+    }
 }
 
 fn str_from_file(file: &str) -> String {

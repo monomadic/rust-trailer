@@ -1,4 +1,5 @@
 pair = "icxbtc"
+trailing_loss = 10
 
 # [trailer]
 

@@ -1,9 +1,11 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use std::io;
+// use std::io;
 // use std::env;
 // use std::thread;
+use exchanges::*;
+use error::*;
 
 use docopt::Docopt;
 
@@ -15,6 +17,9 @@ Usage:
   trade binance buckets <coin>
   trade binance all
   trade binance trades
+  trade binance price <symbol>
+  trade binance buy <pair> <amount> <price>
+  trade binance sell <pair> <amount> <price>
   trade binance orders cancel
   trade binance orders ls <pairs>
   trade bittrex funds
@@ -23,6 +28,7 @@ Usage:
   trade bittrex history
   trade bot run
   trade bot backtest <csv>
+
   trade caps
 
 Options:
@@ -30,14 +36,14 @@ Options:
   --version     Show version.
 ";
 
-pub fn run_docopt() -> io::Result<()> {
+pub fn run_docopt() -> Result<(), TrailerError> {
     let args = Docopt::new(USAGE)
         .and_then(|dopt| dopt
             .version(Some(VERSION.to_string()))
             .parse())
         .unwrap_or_else(|e| e.exit());
 
-    let conf = ::config::read();
+    let conf = ::config::read()?;
 
     if args.get_bool("caps") {
         println!("cap.symbol, cap.volume_usd_24h, cap.market_cap_usd, cap.cap_vs_vol_24h()");
@@ -47,6 +53,7 @@ pub fn run_docopt() -> io::Result<()> {
     }
 
     if args.get_bool("bot") {
+        use ::bot::*;
 
         if args.get_bool("run") {
             let bot = ::bot::Bot::load_config("bots/LTC.toml".to_string());
@@ -54,8 +61,16 @@ pub fn run_docopt() -> io::Result<()> {
         }
 
         if args.get_bool("backtest") {
-            let bot = ::bot::Bot::load_config("bots/LTC.toml".to_string());
-            bot.backtest(vec![]);
+            // let bot = ::bot::Bot::load_config("bots/LTC.toml".to_string());
+            let bot = Bot {
+                symbol: "FUDCOIN".to_string(),
+            };
+
+            println!("loading csv...");
+            let data = ::bot::csv::load_backtest_data(args.get_str("<csv>"))?;
+
+            println!("starting bot...");
+            bot.backtest(data);
         }
 
     }
@@ -77,41 +92,25 @@ pub fn run_docopt() -> io::Result<()> {
 
                 if args.get_bool("funds") {
                     println!("getting funds...");
-                    let funds = ::types::sort_funds(bittrex.funds());
+                    let funds = bittrex.funds(); // FIX
 
                     println!("getting prices...");
-                    match bittrex.prices() {
-                        Ok(prices) => {
-                            ::display::show_prices(prices.clone());
-                            ::display::show_funds(funds, prices);
-                        },
-                        Err(error) => ::display::show_error(error),
-                    };
+                    let prices = bittrex.prices()?;
+
+                    ::display::show_prices(prices.clone());
+                    ::display::show_funds(::types::sort_funds(funds), prices);                 
                 }
-
-                // if args.get_bool("orders") {
-                //     println!("getting orders...");
-                //     let orders = bittrex.orders();
-
-                //     ::display::show_orders(orders);
-                // }
 
                 if args.get_bool("orders") {
 
                     if args.get_bool("ls") {
                         println!("getting orders...");
                         let orders = bittrex.orders();
+                        // let orders = bittrex.price();
                         ::display::show_orders(orders);
                     }
 
-                    // if args.get_bool("cancel") {
-                    //     println!("attempting to cancel orders...");
-                    //     binance.cancel_orders();
-                    // }
-
                 }
-
-
 
                 if args.get_bool("history") {
                     println!("getting history...");
@@ -134,29 +133,30 @@ pub fn run_docopt() -> io::Result<()> {
 
                 if args.get_bool("all") {
                     println!("getting prices...");
+                    let prices = binance.prices()?;
+                    ::display::show_prices(prices);
+                }
 
-                    match binance.prices() {
-                        Ok(prices) => ::display::show_prices(prices),
-                        Err(error) => ::display::show_error(error),
-                    };
+                if args.get_bool("price") {
+                    println!("getting price...");
+                    let symbol = args.get_str("<symbol>");
+
+                    let price = binance.price(symbol)?;
+                    ::display::show_price((symbol.to_string(), price));
                 }
 
                 if args.get_bool("funds") {
                     println!("getting funds...");
-                    let funds = ::types::sort_funds(binance.funds());
+                    let funds = binance.funds()?;
 
                     println!("getting prices...");
-                    match binance.prices() {
-                        Ok(prices) => {
-                            ::display::show_prices(prices.clone());
-                            ::display::show_funds(funds, prices);
-                        }
-                        Err(error) => ::display::show_error(error),
-                    };                    
+                    let prices = binance.prices()?;
+
+                    ::display::show_prices(prices.clone());
+                    ::display::show_funds(::types::sort_funds(funds), prices);                 
                 }
 
                 if args.get_bool("orders") {
-
                     if args.get_bool("ls") {
                         println!("getting orders...");
                         let pairs = args.get_vec("pairs");
@@ -167,9 +167,15 @@ pub fn run_docopt() -> io::Result<()> {
                         println!("attempting to cancel orders...");
                         binance.cancel_orders();
                     }
-
                 }
 
+                if args.get_bool("buy") {
+                    let symbol = args.get_str("<pair>");
+                    let amount = args.get_str("<amount>").parse::<u32>()?;
+                    let price = args.get_str("<price>").parse::<f64>()?;
+
+                    let limit_buy = binance.limit_buy(symbol, amount, price)?;
+                }
                 // if args.get_bool("trades") {
                 //     println!("getting trades...");
                 //     let trades = binance.trades();
@@ -185,6 +191,8 @@ pub fn run_docopt() -> io::Result<()> {
                     for coin in coins {
                         // binance.show_trades(coin);
                         // println!("getting trades for {}...", coin);
+                        let price = binance.price(coin);
+
                         let trades = binance.trades(coin);
                         ::display::show_trades(trades);
 
@@ -197,14 +205,7 @@ pub fn run_docopt() -> io::Result<()> {
                     let coins = args.get_vec("<coin>");
 
                     for coin in coins {
-                        // binance.show_trades(coin);
-                        // println!("getting trades for {}...", coin);
                         let trades = binance.trades(coin);
-                        // ::display::show_trades(trades);
-
-                        // let orders = binance.orders(vec![coin.to_string()]);
-                        // ::display::show_orders(orders);
-
                         let buckets = ::types::trade_buckets(trades);
                         ::display::show_buckets(buckets);
                     }

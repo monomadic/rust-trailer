@@ -8,6 +8,8 @@ pub struct TrailerError {
 pub enum TrailerErrorType {
     ImportError,
     APIError,
+    CommandError,
+    ConfigError,
 }
 
 use bittrex::error::BittrexError as BittrexError;
@@ -16,6 +18,25 @@ impl From<BittrexError> for TrailerError {
         TrailerError {
             error_type: TrailerErrorType::APIError,
             message: error.message,
+        }
+    }
+}
+
+impl From<::std::num::ParseFloatError> for TrailerError {
+    fn from(error: ::std::num::ParseFloatError) -> Self {
+        println!("{}", error);
+        TrailerError {
+            error_type: TrailerErrorType::CommandError,
+            message: "One or more provided parameters could not be converted to valid floats.".into(),
+        }
+    }
+}
+
+impl From<::std::num::ParseIntError> for TrailerError {
+    fn from(_error: ::std::num::ParseIntError) -> Self {
+        TrailerError {
+            error_type: TrailerErrorType::CommandError,
+            message: "One or more provided parameters could not be converted to valid integers.".into(),
         }
     }
 }
