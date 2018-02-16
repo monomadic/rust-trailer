@@ -1,11 +1,20 @@
 // https://cobinhood.github.io/api-public/
 
-// #[macro_use]
-// extern crate serde_derive;
-// extern crate restson;
+#![allow(dead_code)]
+#![allow(unused_variables)]
 
-// #[derive(Debug, Serialize, Deserialize)]
-// struct Cobinhood {
-//     total_market_cap_usd: f64,
-//     total_24h_volume_usd: f64,
-// }
+// Binance rate limits are: 1200 requests per minute; 10 orders per second; 100,000 orders per 24hrs. 
+
+use cobinhood::client::Client;
+
+pub struct CobinhoodAPI {
+    pub client: Client,
+}
+
+impl CobinhoodAPI {
+    pub fn connect(api_key: &str) -> Self {
+        Self {
+            client: Client::new(api_key),
+        }
+    }
+}

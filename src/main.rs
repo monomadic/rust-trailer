@@ -10,6 +10,7 @@ extern crate serde_derive;
 extern crate serde_json;
 extern crate serde;
 extern crate ratelimit;
+extern crate cobinhood;
 
 mod exchanges;
 mod command;

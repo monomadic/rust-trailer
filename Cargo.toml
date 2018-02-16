@@ -8,6 +8,7 @@ restson = "^0.1"
 serde = "^1.0"
 serde_derive = "^1.0"
 serde_json = "*"
+cobinhood = { path = "../cobinhood-rs" }
 # binance = { git = "https://github.com/wisespace-io/binance-rs.git" }
 binance = { path = "../_forks/binance-rs" }
 colored = "1.5"

@@ -2,11 +2,13 @@
 #![allow(unused_variables)]
 
 use toml;
+use error::*;
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
     pub bittrex: Option<APIConfig>,
     pub binance: Option<APIConfig>,
+    pub cobinhood: Option<APIConfig>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -15,23 +17,47 @@ pub struct APIConfig {
     pub secret_key: String,
 }
 
-use error::*;
-pub fn read() -> Result<Config, TrailerError> {
-    use std::error::Error;
-    
-    match toml::from_str(&str_from_file(".config.toml")) {
-        Ok(conf) => Ok(conf),
-        Err(e) => Err(TrailerError {
-            error_type: TrailerErrorType::APIError,
-            message: format!("Error loading .config.toml: {}", e.description()),
-        })
+impl From<::std::io::Error> for TrailerError {
+    fn from(error: ::std::io::Error) -> Self {
+        use std::error::Error;
+
+        TrailerError {
+            error_type: TrailerErrorType::ConfigError,
+            message: format!("Error reading .config.toml: {}", error.description()),
+        }
     }
 }
 
-fn str_from_file(file: &str) -> String {
+impl From<::std::string::FromUtf8Error> for TrailerError {
+    fn from(error: ::std::string::FromUtf8Error) -> Self {
+        use std::error::Error;
+
+        TrailerError {
+            error_type: TrailerErrorType::ConfigError,
+            message: format!("Error converting .config.toml to UTF8: {}", error.description()),
+        }
+    }
+}
+
+impl From<::toml::de::Error> for TrailerError {
+    fn from(error: ::toml::de::Error) -> Self {
+        use std::error::Error;
+
+        TrailerError {
+            error_type: TrailerErrorType::ConfigError,
+            message: format!("Error reading .config.toml: {}", error.description()),
+        }
+    }
+}
+
+pub fn read() -> Result<Config, TrailerError> {
+    Ok(toml::from_str(&str_from_file(".config.toml")?)?)
+}
+
+fn str_from_file(file: &str) -> Result<String, TrailerError> {
     use std::io::prelude::*;
-    let mut handle = ::std::fs::File::open(file).expect("file to open");
+    let mut handle = ::std::fs::File::open(file)?;
     let mut bytebuffer = Vec::new();
-    handle.read_to_end(&mut bytebuffer).expect("text file to read");
-    return String::from_utf8(bytebuffer).expect("file to convert from utf8")
+    handle.read_to_end(&mut bytebuffer)?;
+    return Ok(String::from_utf8(bytebuffer)?)
 }

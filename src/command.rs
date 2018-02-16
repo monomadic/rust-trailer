@@ -26,6 +26,7 @@ Usage:
   trade bittrex prices
   trade bittrex orders ls
   trade bittrex history
+  trade cob time
   trade bot run
   trade bot backtest <csv>
 
@@ -73,6 +74,21 @@ pub fn run_docopt() -> Result<(), TrailerError> {
             bot.backtest(data);
         }
 
+    }
+
+    if args.get_bool("cob") {
+        match conf.cobinhood {
+            Some(config) => {
+                // use cobinhood::general::Client;
+
+                let client = ::exchanges::cobinhood::CobinhoodAPI::connect(&config.api_key);
+                let time = client.client.get_server_time().expect("api to work");
+                println!("time: {}", time);
+            }
+            None => {
+                println!("No cobinhood keys inside .config.toml!");
+            }
+        }
     }
 
     if args.get_bool("bittrex") {

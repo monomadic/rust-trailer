@@ -1,5 +1,6 @@
 pub mod binance;
 pub mod bittrex;
+pub mod cobinhood;
 
 use ::types::*;
 use ::error::*;
