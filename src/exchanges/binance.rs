@@ -98,7 +98,7 @@ use binance::errors::Error as BinanceError;
 impl From<BinanceError> for ::error::TrailerError {
     fn from(error: BinanceError) -> Self {
         ::error::TrailerError {
-            error_type: ::error::TrailerErrorType::ImportError,
+            error_type: ::error::TrailerErrorType::APIError,
             message: error.description().to_string(),
         }
     }

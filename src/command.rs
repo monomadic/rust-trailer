@@ -27,6 +27,7 @@ Usage:
   trade bittrex orders ls
   trade bittrex history
   trade cob time
+  trade cob funds
   trade bot run
   trade bot backtest <csv>
 
@@ -79,11 +80,25 @@ pub fn run_docopt() -> Result<(), TrailerError> {
     if args.get_bool("cob") {
         match conf.cobinhood {
             Some(config) => {
-                // use cobinhood::general::Client;
-
                 let client = ::exchanges::cobinhood::CobinhoodAPI::connect(&config.api_key);
-                let time = client.client.get_server_time().expect("api to work");
-                println!("time: {}", time);
+
+                if args.get_bool("time") {
+                    let time = client.client.get_server_time().expect("api to work");
+                    println!("time: {}", time);
+                }
+
+                if args.get_bool("funds") {
+                    println!("getting funds...");
+                    let funds = client.funds(); // FIX
+
+                    println!("{:?}", funds);
+
+                    // println!("getting prices...");
+                    // let prices = client.prices()?;
+
+                    // ::display::show_prices(prices.clone());
+                    // ::display::show_funds(::types::sort_funds(funds), prices);
+                }
             }
             None => {
                 println!("No cobinhood keys inside .config.toml!");
@@ -113,7 +128,7 @@ pub fn run_docopt() -> Result<(), TrailerError> {
                     println!("getting prices...");
                     let prices = bittrex.prices()?;
 
-                    ::display::show_prices(prices.clone());
+                    // ::display::show_prices(prices.clone());
                     ::display::show_funds(::types::sort_funds(funds), prices);                 
                 }
 
@@ -168,7 +183,7 @@ pub fn run_docopt() -> Result<(), TrailerError> {
                     println!("getting prices...");
                     let prices = binance.prices()?;
 
-                    ::display::show_prices(prices.clone());
+                    // ::display::show_prices(prices.clone());
                     ::display::show_funds(::types::sort_funds(funds), prices);                 
                 }
 
