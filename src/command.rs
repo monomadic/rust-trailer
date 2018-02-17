@@ -207,6 +207,14 @@ pub fn run_docopt() -> Result<(), TrailerError> {
 
                     let limit_buy = binance.limit_buy(symbol, amount, price)?;
                 }
+
+                if args.get_bool("sell") {
+                    let symbol = args.get_str("<pair>");
+                    let amount = args.get_str("<amount>").parse::<u32>()?;
+                    let price = args.get_str("<price>").parse::<f64>()?;
+
+                    let limit_sell = binance.limit_sell(symbol, amount, price)?;
+                }
                 // if args.get_bool("trades") {
                 //     println!("getting trades...");
                 //     let trades = binance.trades();

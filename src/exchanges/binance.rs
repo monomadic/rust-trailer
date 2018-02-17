@@ -92,6 +92,13 @@ impl ExchangeAPI for BinanceAPI {
         Ok(())
     }
 
+    fn limit_sell(&self, symbol: &str, amount: u32, price: f64) -> Result<(), TrailerError> {
+        // println!("{:?} {:?} {:?}", symbol, amount, price);
+        let result = self.account.limit_sell(symbol.into(), amount, price)?;
+        println!("{:?}", result);
+        Ok(())
+    }
+
 }
 
 use binance::errors::Error as BinanceError;
