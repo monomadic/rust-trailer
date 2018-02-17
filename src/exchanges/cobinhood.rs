@@ -9,9 +9,16 @@ use cobinhood::client::Client;
 
 use ::types::*;
 use ::error::*;
+use ::exchanges::ExchangeAPI;
 
 pub struct CobinhoodAPI {
     pub client: Client,
+}
+
+pub fn connect(api_key: &str) -> CobinhoodAPI {
+    CobinhoodAPI {
+        client: Client::new(api_key),
+    }
 }
 
 use cobinhood::error::CobinhoodError as CobError;
@@ -24,20 +31,32 @@ impl From<CobError> for TrailerError {
     }
 }
 
-impl CobinhoodAPI {
-    pub fn connect(api_key: &str) -> Self {
-        Self {
-            client: Client::new(api_key),
-        }
-    }
-
-    pub fn funds(&self) -> Result<Vec<CoinAsset>, TrailerError> {
+impl ExchangeAPI for CobinhoodAPI {
+    fn funds(&self) -> Result<Vec<CoinAsset>, TrailerError> {
         let balances = self.client.balances()?;
+
         Ok(balances.into_iter().map(|b| CoinAsset {
             symbol: b.currency,
             amount: b.total,
             locked: 0.0,
             exchange: "Cobinhood".into(),
         }).collect())
+    }
+
+    fn price(&self, symbol: &str) -> Result<f64, TrailerError> {
+        // Ok(self.client.get_price(symbol)?)
+        Err(TrailerError::unsupported())
+    }
+
+    fn prices(&self) -> Result<Prices, TrailerError> {
+        Err(TrailerError::unsupported())
+    }
+
+    fn limit_buy(&self, symbol: &str, amount: u32, price: f64) -> Result<(), TrailerError> {
+        Err(TrailerError::unsupported())
+    }
+
+    fn limit_sell(&self, symbol: &str, amount: u32, price: f64) -> Result<(), TrailerError> {
+        Err(TrailerError::unsupported())
     }
 }

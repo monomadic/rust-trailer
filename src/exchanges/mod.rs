@@ -6,7 +6,7 @@ use ::types::*;
 use ::error::*;
 
 pub trait ExchangeAPI {
-    fn connect(api_key: &str, secret_key: &str) -> Self;
+    // fn connect(api_key: &str, secret_key: &str) -> Self;
     fn funds(&self) -> Result<Vec<CoinAsset>, TrailerError>;
     fn price(&self, symbol: &str) -> Result<f64, TrailerError>;
     fn prices(&self) -> Result<Prices, TrailerError>;

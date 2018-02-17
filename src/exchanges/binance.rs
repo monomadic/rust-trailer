@@ -4,10 +4,10 @@
 // Binance rate limits are: 1200 requests per minute; 10 orders per second; 100,000 orders per 24hrs. 
 
 use binance::api::*;
-use colored::*;
 use binance::account::*;
 use binance::market::*;
 use binance::websockets::*;
+
 use std::collections::HashMap;
 
 use ::types::*;
@@ -38,30 +38,17 @@ impl MarketEventHandler for BinanceWebSocketHandler {
 
 impl ExchangeAPI for BinanceAPI {
 
-    fn connect(api_key: &str, secret_key: &str) -> Self {
-        Self {
-            account: Binance::new(
-                Some(api_key.to_string()),
-                Some(secret_key.to_string())
-            ),
-            market: Market::new(None, None),
-        }
-    }
-
     fn funds(&self) -> Result<Vec<CoinAsset>, TrailerError> {
-        let mut funds = Vec::new();
         let result = self.account.get_account()?;
 
-        for balance in result.balances {
-            funds.push(CoinAsset {
+        Ok(result.balances.into_iter().map(|balance| {
+            CoinAsset {
                 symbol: balance.asset,
                 amount: balance.free.parse::<f64>().unwrap() + balance.locked.parse::<f64>().unwrap(),
                 locked: balance.locked.parse::<f64>().unwrap(),
                 exchange: "Binance".to_string(),
-            })
-        }
-
-        Ok(funds)
+            }
+        }).collect())
     }
 
     fn price(&self, symbol: &str) -> Result<f64, TrailerError> {
@@ -69,8 +56,8 @@ impl ExchangeAPI for BinanceAPI {
     }
 
     fn prices(&self) -> Result<Prices, TrailerError> {
-        let mut p = HashMap::new();
         let market_prices = self.market.get_all_prices()?;
+        let mut p = HashMap::new();
 
         match market_prices {
             ::binance::model::Prices::AllPrices(prices) => {

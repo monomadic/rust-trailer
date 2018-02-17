@@ -2,9 +2,12 @@
 #![allow(unused_variables)]
 
 use bittrex::BittrexClient;
+
 use std::collections::HashMap;
 
 use ::types::*;
+use ::error::*;
+use ::exchanges::ExchangeAPI;
 
 pub struct BittrexAPI {
     client: BittrexClient,
@@ -16,6 +19,50 @@ pub fn connect(api_key: &str, secret_key: &str) -> BittrexAPI {
             api_key.to_string(),
             secret_key.to_string()
         ),
+    }
+}
+
+impl ExchangeAPI for BittrexAPI {
+    fn funds(&self) -> Result<Vec<CoinAsset>, TrailerError> {
+        let balances = self.client.get_balances()?;
+
+        Ok(balances.into_iter().map(|balance| {
+            CoinAsset {
+                symbol: balance.currency,
+                amount: balance.balance as f64,
+                locked: (balance.balance - balance.available) as f64,
+                exchange: "Bittrex".to_string(),
+            }
+        }).collect())
+    }
+
+    fn price(&self, symbol: &str) -> Result<f64, TrailerError> {
+        Ok(self.client.get_ticker(symbol)?.last as f64)
+    }
+
+    fn prices(&self) -> Result<Prices, TrailerError> {
+        let response = self.client.get_market_summaries()?;
+        let mut p = HashMap::new();
+
+        for market in response {
+            let split: Vec<&str> = market.market_name.split("-").collect();
+            let pair_name = format!("{}{}", *split.last().unwrap(), *split.first().unwrap()); // dangerous, fix
+
+            p.insert(
+                pair_name,
+                market.last
+            );
+        }
+        
+        Ok(p)
+    }
+
+    fn limit_buy(&self, symbol: &str, amount: u32, price: f64) -> Result<(), TrailerError> {
+        Err(TrailerError::unsupported())
+    }
+
+    fn limit_sell(&self, symbol: &str, amount: u32, price: f64) -> Result<(), TrailerError> {
+        Err(TrailerError::unsupported())
     }
 }
 
@@ -82,24 +129,5 @@ impl BittrexAPI {
         };
 
         orders
-    }
-
-    pub fn prices(&self) -> Result<Prices, ::error::TrailerError> {
-        let response = self.client.get_market_summaries()?;
-        let mut p = HashMap::new();
-
-        for market in response {
-            let split: Vec<&str> = market.market_name.split("-").collect();
-            // print!("{:?} ", split);
-            let pair_name = format!("{}{}", *split.last().unwrap(), *split.first().unwrap()); // dangerous, fix
-            // print!("{} ", pair_name);
-
-            p.insert(
-                pair_name,
-                market.last
-            );
-        }
-        
-        Ok(p)
     }
 }
