@@ -23,6 +23,20 @@ impl TrailerError {
             message: "This feature is not supported by the selected exchange.".into(),
         }
     }
+
+    pub fn missing_argument(arg: &str) -> Self {
+        Self {
+            error_type: TrailerErrorType::Unsupported,
+            message: format!("Missing required argument: {}", arg),
+        }
+    }
+
+    pub fn missing_config_keys(arg: &str) -> Self {
+        Self {
+            error_type: TrailerErrorType::ConfigError,
+            message: format!("Missing required configuration keys for: {}", arg),
+        }
+    }
 }
 
 use bittrex::error::BittrexError as BittrexError;
