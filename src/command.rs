@@ -18,11 +18,6 @@ Exchange:
     bittrex
 ";
 
-
-//     trade (binance|bittrex|cob) funds
-//     trade (binance|bittrex|cob) price <symbol>
-//     trade (binance|bittrex|cob) (buy|sell) <symbol> <amount> <price>
-
 //     trade binance funds
 //     trade binance ls <coin>
 //     trade binance buckets <coin>
@@ -47,23 +42,6 @@ Exchange:
 //   -h --help     Show this screen.
 //   --version     Show version.
 // ";
-
-// #[derive(Deserialize, Debug)]
-// enum Exchange { Binance, Bittrex }
-
-// #[derive(Debug, Deserialize)]
-// struct Args {
-//     cmd_binance: bool,
-//     cmd_bittrex: bool,
-//     cmd_cob: bool,
-//     cmd_funds: bool,
-//     cmd_price: bool,
-//     arg_symbol: String,
-//     arg_amount: Option<f64>,
-//     arg_price: Option<f64>,
-//     cmd_buy: bool,
-//     cmd_sell: bool,
-// }
 
 #[derive(Debug, Deserialize)]
 struct Args {
@@ -132,51 +110,6 @@ pub fn run_docopt() -> Result<(), TrailerError> {
             let limit_sell = client.limit_sell(&symbol, amount as u32, price)?;
         }
     }
-
-
-        // let price = args.arg_price.ok_or(TrailerError::missing_argument("price"))?;
-    // if args.cmd_binance || args.cmd_bittrex {
-    //     // read config
-    //     let conf = ::config::read()?;
-    //     let client = if args.cmd_binance { get_client(Exchange::Binance, conf.binance)? }
-    //         else { get_client(Exchange::Bittrex, conf.bittrex)? };
-
-    //     if args.cmd_funds {
-    //         println!("getting funds...");
-    //         let funds = client.funds()?;
-
-    //         println!("getting prices...");
-    //         let prices = client.prices()?;
-
-    //         ::display::show_funds(::types::sort_funds(funds), prices);
-    //     }
-
-    //     if args.cmd_price {
-    //         println!("getting price...");
-    //         let price = client.price(&args.arg_symbol)?;
-    //         ::display::show_price((args.arg_symbol.clone(), price));
-    //     }
-
-    //     if args.cmd_buy {
-
-    //         let amount = args.arg_amount.unwrap_or(|| { return TrailerError::missing_argument("amount"); });
-
-    //         if args.arg_amount.is_empty() {
-    //             return 
-    //         }
-
-    //         let amount = args.arg_amount? as u32;
-
-
-    //         // .unwrap_or_else(|| return Err(TrailerError::missing_argument("amount"))) as u32;
-    //         let limit_buy = client.limit_buy(&args.arg_symbol, args.arg_amount as u32, args.arg_price)?;
-    //     }
-
-    //     if args.cmd_sell {
-    //         let limit_sell = client.limit_sell(&args.arg_symbol, args.arg_amount as u32, args.arg_price)?;
-    //     }
-
-    // };
 
     Ok(())
 }
