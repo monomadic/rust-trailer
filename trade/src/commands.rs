@@ -1,8 +1,9 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use exchanges::*;
-use error::*;
+use trailer;
+use trailer::exchanges::*;
+use trailer::error::*;
 
 use docopt::Docopt;
 
@@ -16,10 +17,6 @@ Usage:
 Exchange:
     binance
     bittrex
-
-Options:
-      -h --help     Show this screen.
-      --version     Show version.
 ";
 
 //     trade binance funds
@@ -73,7 +70,7 @@ pub fn run_docopt() -> Result<(), TrailerError> {
 
     // println!("{:?}", args);
 
-    let conf = ::config::read()?;
+    let conf = trailer::config::read()?;
 
     let keys = match args.arg_exchange {
         Exchange::Bittrex => conf.bittrex.ok_or(TrailerError::missing_config_keys("bittrex"))?,
@@ -81,8 +78,8 @@ pub fn run_docopt() -> Result<(), TrailerError> {
     };
 
     let client:Box<ExchangeAPI> = match args.arg_exchange {
-        Exchange::Bittrex => Box::new(::exchanges::bittrex::connect(&keys.api_key, &keys.secret_key)),
-        Exchange::Binance => Box::new(::exchanges::binance::connect(&keys.api_key, &keys.secret_key)),
+        Exchange::Bittrex => Box::new(trailer::exchanges::bittrex::connect(&keys.api_key, &keys.secret_key)),
+        Exchange::Binance => Box::new(trailer::exchanges::binance::connect(&keys.api_key, &keys.secret_key)),
     };
 
     if args.cmd_funds {
@@ -92,7 +89,7 @@ pub fn run_docopt() -> Result<(), TrailerError> {
         println!("getting prices...");
         let prices = client.prices()?;
 
-        ::display::show_funds(::types::sort_funds(funds), prices);
+        ::display::show_funds(trailer::types::sort_funds(funds), prices);
     }
 
     if args.cmd_price {

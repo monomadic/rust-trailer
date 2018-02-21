@@ -52,11 +52,15 @@ impl ExchangeAPI for CobinhoodAPI {
         Err(TrailerError::unsupported())
     }
 
-    fn limit_buy(&self, symbol: &str, amount: u32, price: f64) -> Result<(), TrailerError> {
+    fn limit_buy(&self, symbol: &str, amount: f64, price: f64) -> Result<(), TrailerError> {
         Err(TrailerError::unsupported())
     }
 
-    fn limit_sell(&self, symbol: &str, amount: u32, price: f64) -> Result<(), TrailerError> {
+    fn limit_sell(&self, symbol: &str, amount: f64, price: f64) -> Result<(), TrailerError> {
+        Err(TrailerError::unsupported())
+    }
+
+    fn orders(&self) -> Result<Vec<Order>, TrailerError> {
         Err(TrailerError::unsupported())
     }
 }

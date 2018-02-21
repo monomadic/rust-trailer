@@ -12,18 +12,18 @@ extern crate serde;
 extern crate ratelimit;
 extern crate cobinhood;
 
-mod exchanges;
+pub mod exchanges;
 mod command;
 mod bot;
 mod display;
-mod types;
-mod config;
-mod coinmarketcap;
-mod error;
+pub mod types;
+pub mod config;
+pub mod coinmarketcap;
+pub mod error;
 
-fn main() {
-    match ::command::run_docopt() {
-        Ok(_) => println!("done."),
-        Err(e) => ::display::show_error(e),
-    }
-}
+// fn main() {
+//     match ::command::run_docopt() {
+//         Ok(_) => println!("done."),
+//         Err(e) => ::display::show_error(e),
+//     }
+// }

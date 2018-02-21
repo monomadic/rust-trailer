@@ -74,18 +74,20 @@ impl ExchangeAPI for BinanceAPI {
         Ok(p)
     }
 
-    fn limit_buy(&self, symbol: &str, amount: u32, price: f64) -> Result<(), TrailerError> {
-        // println!("{:?} {:?} {:?}", symbol, amount, price);
+    fn limit_buy(&self, symbol: &str, amount: f64, price: f64) -> Result<(), TrailerError> {
         let result = self.account.limit_buy(symbol, amount, price)?;
         println!("{:?}", result);
         Ok(())
     }
 
-    fn limit_sell(&self, symbol: &str, amount: u32, price: f64) -> Result<(), TrailerError> {
-        // println!("{:?} {:?} {:?}", symbol, amount, price);
+    fn limit_sell(&self, symbol: &str, amount: f64, price: f64) -> Result<(), TrailerError> {
         let result = self.account.limit_sell(symbol, amount, price)?;
         println!("{:?}", result);
         Ok(())
+    }
+
+    fn orders(&self) -> Result<Vec<Order>, TrailerError> {
+        Err(TrailerError::unsupported())
     }
 
 }

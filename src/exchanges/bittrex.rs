@@ -57,12 +57,24 @@ impl ExchangeAPI for BittrexAPI {
         Ok(p)
     }
 
-    fn limit_buy(&self, symbol: &str, amount: u32, price: f64) -> Result<(), TrailerError> {
+    fn limit_buy(&self, symbol: &str, amount: f64, price: f64) -> Result<(), TrailerError> {
         Err(TrailerError::unsupported())
     }
 
-    fn limit_sell(&self, symbol: &str, amount: u32, price: f64) -> Result<(), TrailerError> {
+    fn limit_sell(&self, symbol: &str, amount: f64, price: f64) -> Result<(), TrailerError> {
         Err(TrailerError::unsupported())
+    }
+
+    fn orders(&self) -> Result<Vec<Order>, TrailerError> {
+        Ok(self.client.get_open_orders()?.into_iter().map(|order| {
+            Order{
+                id:             order.order_uuid,
+                symbol:         order.exchange,
+                order_type:     order.order_type,
+                amount:         order.quantity as f64,
+                price:          order.limit as f64,
+            }
+        }).collect())
     }
 }
 
@@ -87,27 +99,17 @@ impl BittrexAPI {
         funds
     }
 
-    pub fn orders(&self) -> Vec<Order> {
-        let mut orders = Vec::new();
-
-        match self.client.get_open_orders() {
-            Ok(result) => {
-                for order in result {
-                    // println!("{}", order);
-                    orders.push(Order{
-                        id: order.order_uuid,
-                        symbol: order.exchange,
-                        order_type: order.order_type,
-                        amount: order.quantity as f64,
-                        price: order.limit as f64,
-                    });
-                }
-            },
-            Err(e) => println!("Error: {}", e),
-        };
-
-        orders
-    }
+    // pub fn orders(&self) -> Result<Vec<Order>, TrailerError> {
+    //     Ok(self.client.get_open_orders()?.into_iter().map(|order| {
+    //         Order{
+    //             id:             order.order_uuid,
+    //             symbol:         order.exchange,
+    //             order_type:     order.order_type,
+    //             amount:         order.quantity as f64,
+    //             price:          order.limit as f64,
+    //         }
+    //     }).collect())
+    // }
 
     pub fn history(&self) -> Vec<Order> {
         let mut orders = Vec::new();
