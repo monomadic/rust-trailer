@@ -23,7 +23,7 @@ pub struct BinanceWS {
     socket: WebSockets,
 }
 
-use binance::model::TradesEvent;
+use binance::model::{ TradesEvent, DepthOrderBookEvent, OrderBook };
 
 struct BinanceWebSocketHandler;
 
@@ -34,6 +34,8 @@ impl MarketEventHandler for BinanceWebSocketHandler {
             event.symbol, event.price, event.qty
         );
     }
+    fn depth_orderbook_handler(&self, model: &DepthOrderBookEvent) {}
+    fn partial_orderbook_handler(&self, model: &OrderBook) {}
 }
 
 impl ExchangeAPI for BinanceAPI {
@@ -55,7 +57,7 @@ impl ExchangeAPI for BinanceAPI {
         Ok(self.market.get_price(symbol)?)
     }
 
-    fn prices(&self) -> Result<Prices, TrailerError> {
+    fn prices(&self) -> Result<::types::Prices, TrailerError> {
         let market_prices = self.market.get_all_prices()?;
         let mut p = HashMap::new();
 
@@ -64,7 +66,7 @@ impl ExchangeAPI for BinanceAPI {
                 for price in prices {
                     p.insert(
                         price.symbol,
-                        price.price.parse::<f64>().unwrap());
+                        price.price);
                 }
             }
         }
@@ -74,14 +76,14 @@ impl ExchangeAPI for BinanceAPI {
 
     fn limit_buy(&self, symbol: &str, amount: u32, price: f64) -> Result<(), TrailerError> {
         // println!("{:?} {:?} {:?}", symbol, amount, price);
-        let result = self.account.limit_buy(symbol.into(), amount, price)?;
+        let result = self.account.limit_buy(symbol, amount, price)?;
         println!("{:?}", result);
         Ok(())
     }
 
     fn limit_sell(&self, symbol: &str, amount: u32, price: f64) -> Result<(), TrailerError> {
         // println!("{:?} {:?} {:?}", symbol, amount, price);
-        let result = self.account.limit_sell(symbol.into(), amount, price)?;
+        let result = self.account.limit_sell(symbol, amount, price)?;
         println!("{:?}", result);
         Ok(())
     }
@@ -143,11 +145,11 @@ impl BinanceAPI {
     }
 
     pub fn trades(&self, coin: &str) -> Vec<Trade> {
-        match self.account.trade_history(coin.into()) {
+        match self.account.trade_history(coin) {
             Ok(answer) => {
                 answer.iter().map(|trade| {
-                    let cost = trade.price.parse::<f64>().unwrap();
-                    let qty = trade.qty.parse::<f64>().unwrap();
+                    let cost = trade.price;
+                    let qty = trade.qty;
 
                     Trade { cost: cost, qty: qty, buy: trade.is_buyer }
                 }).collect()

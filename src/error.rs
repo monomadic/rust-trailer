@@ -11,6 +11,7 @@ pub struct TrailerError {
 pub enum TrailerErrorType {
     ImportError,
     APIError,
+    MissingArgumentError(String),
     CommandError,
     ConfigError,
     Unsupported,
@@ -26,7 +27,7 @@ impl TrailerError {
 
     pub fn missing_argument(arg: &str) -> Self {
         Self {
-            error_type: TrailerErrorType::Unsupported,
+            error_type: TrailerErrorType::MissingArgumentError(arg.into()),
             message: format!("Missing required argument: {}", arg),
         }
     }
