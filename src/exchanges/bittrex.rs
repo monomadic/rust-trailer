@@ -58,11 +58,15 @@ impl ExchangeAPI for BittrexAPI {
     }
 
     fn limit_buy(&self, symbol: &str, amount: f64, price: f64) -> Result<(), TrailerError> {
-        Err(TrailerError::unsupported())
+        let result = self.client.buy_limit(symbol, amount, price)?;
+        println!("{}", result);
+        Ok(())
     }
 
     fn limit_sell(&self, symbol: &str, amount: f64, price: f64) -> Result<(), TrailerError> {
-        Err(TrailerError::unsupported())
+        let result = self.client.sell_limit(symbol, amount, price)?;
+        println!("{}", result);
+        Ok(())
     }
 
     fn open_orders(&self) -> Result<Vec<Order>, TrailerError> {
