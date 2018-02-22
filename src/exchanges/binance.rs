@@ -128,28 +128,6 @@ pub fn connect(api_key: &str, secret_key: &str) -> BinanceAPI {
 
 impl BinanceAPI {
 
-    pub fn cancel_orders(&self) {}
-
-//    pub fn orders(&self, symbols: Vec<&str>) -> Vec<Order> {
-//        let mut orders = Vec::new();
-//
-//        for symbol in symbols {
-//            match self.account.get_open_orders(symbol.to_string()) {
-//                Ok(o) => {
-//                    orders.push(Order{
-//                        id: "0.,".to_string(),
-//                        symbol: ",".to_string(),
-//                        order_type: "".to_string(),
-//                        amount: 0.,
-//                        price: 0.,
-//                    });
-//                },
-//                Err(e) => println!("Error: {}", e),
-//            };
-//        }
-//        orders
-//    }
-
     pub fn trades(&self, coin: &str) -> Vec<Trade> {
         match self.account.trade_history(coin) {
             Ok(answer) => {
@@ -211,27 +189,4 @@ impl BinanceAPI {
     //     }
     // }
 
-//    pub fn sell(&self, pair: &str, amount: u32, price: f64) {
-//        match self.account.limit_sell(pair.to_string(), amount, price) {
-//            Ok(answer) => println!("{:?}", answer),
-//            Err(e) => println!("Error: {}", e),
-//        }
-//    }
-
 }
-
-// pub fn historic() {
-//     use binance::market::*;
-//     let market: Market = Binance::new(None, None);
-
-//     match market.get_depth("BNBBTC".into()) {
-//         Ok(answer) => println!("{:?}", answer),
-//         Err(e) => println!("Error: {}", e),
-//     }
-
-//     match market.get_all_prices() {
-//         Ok(answer) => println!("{:?}", answer),
-//         Err(e) => println!("Error: {}", e),
-//     }
-// }
-
