@@ -13,9 +13,7 @@ extern crate ratelimit;
 extern crate cobinhood;
 
 pub mod exchanges;
-mod command;
 mod bot;
-mod display;
 pub mod types;
 pub mod config;
 pub mod coinmarketcap;
