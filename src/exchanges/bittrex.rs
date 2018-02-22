@@ -65,7 +65,7 @@ impl ExchangeAPI for BittrexAPI {
         Err(TrailerError::unsupported())
     }
 
-    fn orders(&self) -> Result<Vec<Order>, TrailerError> {
+    fn open_orders(&self) -> Result<Vec<Order>, TrailerError> {
         Ok(self.client.get_open_orders()?.into_iter().map(|order| {
             Order{
                 id:             order.order_uuid,
@@ -73,6 +73,20 @@ impl ExchangeAPI for BittrexAPI {
                 order_type:     order.order_type,
                 amount:         order.quantity as f64,
                 price:          order.limit as f64,
+            }
+        }).collect())
+    }
+
+    fn past_orders(&self) -> Result<Vec<Order>, TrailerError> {
+        Ok(self.client.get_order_history()?.into_iter().map(|order| {
+            {
+                Order{
+                    id:             order.order_uuid,
+                    symbol:         order.exchange,
+                    order_type:     order.order_type,
+                    amount:         order.quantity as f64,
+                    price:          order.limit as f64,
+                }
             }
         }).collect())
     }

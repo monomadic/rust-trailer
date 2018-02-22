@@ -85,9 +85,6 @@ pub fn run_docopt() -> Result<(), TrailerError> {
         if args.get_bool("funds") {
             println!("funds");
         }
-
-
-
     }
 
     if args.get_bool("caps") {

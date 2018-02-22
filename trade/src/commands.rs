@@ -11,6 +11,8 @@ const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 const USAGE: &'static str = "
 Usage:
     trade <exchange> funds
+    trade <exchange> orders
+    trade <exchange> past-orders
     trade <exchange> price <symbol>
     trade <exchange> (buy|sell) <symbol> <amount> <price>
 
@@ -39,11 +41,6 @@ Exchange:
 //     trade bot backtest <csv>
 //     trade caps
 
-// Options:
-//   -h --help     Show this screen.
-//   --version     Show version.
-// ";
-
 #[derive(Debug, Deserialize)]
 struct Args {
     arg_exchange: Exchange,
@@ -51,6 +48,8 @@ struct Args {
     cmd_price: bool,
     cmd_buy: bool,
     cmd_sell: bool,
+    cmd_orders: bool,
+    cmd_past_orders: bool,
     arg_symbol: Option<String>,
     arg_amount: Option<f64>,
     arg_price: Option<f64>,
@@ -68,8 +67,6 @@ pub fn run_docopt() -> Result<(), TrailerError> {
         .and_then(|d| d.deserialize())
         .unwrap_or_else(|e| e.exit());
 
-    // println!("{:?}", args);
-
     let conf = trailer::config::read()?;
 
     let keys = match args.arg_exchange {
@@ -81,6 +78,16 @@ pub fn run_docopt() -> Result<(), TrailerError> {
         Exchange::Bittrex => Box::new(trailer::exchanges::bittrex::connect(&keys.api_key, &keys.secret_key)),
         Exchange::Binance => Box::new(trailer::exchanges::binance::connect(&keys.api_key, &keys.secret_key)),
     };
+
+    if args.cmd_orders {
+        println!("getting open orders...");
+        ::display::show_orders(client.open_orders()?);
+    }
+
+    if args.cmd_past_orders {
+        println!("getting past orders...");
+        ::display::show_orders(client.past_orders()?);
+    }
 
     if args.cmd_funds {
         println!("getting funds...");

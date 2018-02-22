@@ -20,10 +20,3 @@ pub mod types;
 pub mod config;
 pub mod coinmarketcap;
 pub mod error;
-
-// fn main() {
-//     match ::command::run_docopt() {
-//         Ok(_) => println!("done."),
-//         Err(e) => ::display::show_error(e),
-//     }
-// }

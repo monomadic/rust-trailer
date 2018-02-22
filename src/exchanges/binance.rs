@@ -86,7 +86,11 @@ impl ExchangeAPI for BinanceAPI {
         Ok(())
     }
 
-    fn orders(&self) -> Result<Vec<Order>, TrailerError> {
+    fn open_orders(&self) -> Result<Vec<Order>, TrailerError> {
+        Err(TrailerError::unsupported())
+    }
+
+    fn past_orders(&self) -> Result<Vec<Order>, TrailerError> {
         Err(TrailerError::unsupported())
     }
 
@@ -126,25 +130,25 @@ impl BinanceAPI {
 
     pub fn cancel_orders(&self) {}
 
-    pub fn orders(&self, symbols: Vec<&str>) -> Vec<Order> {
-        let mut orders = Vec::new();
-
-        for symbol in symbols {
-            match self.account.get_open_orders(symbol.to_string()) {
-                Ok(o) => {
-                    orders.push(Order{
-                        id: "0.,".to_string(),
-                        symbol: ",".to_string(),
-                        order_type: "".to_string(),
-                        amount: 0.,
-                        price: 0.,
-                    });
-                },
-                Err(e) => println!("Error: {}", e),
-            };
-        }
-        orders
-    }
+//    pub fn orders(&self, symbols: Vec<&str>) -> Vec<Order> {
+//        let mut orders = Vec::new();
+//
+//        for symbol in symbols {
+//            match self.account.get_open_orders(symbol.to_string()) {
+//                Ok(o) => {
+//                    orders.push(Order{
+//                        id: "0.,".to_string(),
+//                        symbol: ",".to_string(),
+//                        order_type: "".to_string(),
+//                        amount: 0.,
+//                        price: 0.,
+//                    });
+//                },
+//                Err(e) => println!("Error: {}", e),
+//            };
+//        }
+//        orders
+//    }
 
     pub fn trades(&self, coin: &str) -> Vec<Trade> {
         match self.account.trade_history(coin) {
@@ -207,12 +211,12 @@ impl BinanceAPI {
     //     }
     // }
 
-    pub fn sell(&self, pair: &str, amount: u32, price: f64) {
-        match self.account.limit_sell(pair.to_string(), amount, price) {
-            Ok(answer) => println!("{:?}", answer),
-            Err(e) => println!("Error: {}", e),
-        }
-    }
+//    pub fn sell(&self, pair: &str, amount: u32, price: f64) {
+//        match self.account.limit_sell(pair.to_string(), amount, price) {
+//            Ok(answer) => println!("{:?}", answer),
+//            Err(e) => println!("Error: {}", e),
+//        }
+//    }
 
 }
 

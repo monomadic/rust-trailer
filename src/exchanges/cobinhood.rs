@@ -60,7 +60,11 @@ impl ExchangeAPI for CobinhoodAPI {
         Err(TrailerError::unsupported())
     }
 
-    fn orders(&self) -> Result<Vec<Order>, TrailerError> {
+    fn open_orders(&self) -> Result<Vec<Order>, TrailerError> {
+        Err(TrailerError::unsupported())
+    }
+
+    fn past_orders(&self) -> Result<Vec<Order>, TrailerError> {
         Err(TrailerError::unsupported())
     }
 }

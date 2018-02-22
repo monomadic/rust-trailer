@@ -18,7 +18,7 @@ pub fn colored_balance(num: f64) -> String {
 }
 
 pub fn show_orders(orders: Vec<Order>) {
-    println!("{}", "\nOpen Orders".to_string().yellow());
+//    println!("{}", "\nOpen Orders".to_string().yellow());
     for order in orders {
         println!("{:20}\t{:20}\t{:20.8}\t{:20.2}",
             order.symbol, order.order_type, order.price, order.amount);
