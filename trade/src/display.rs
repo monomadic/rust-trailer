@@ -146,11 +146,11 @@ pub fn show_funds(funds: Funds, prices: Prices) {
     }
 
     for altcoin in funds.clone().alts {
-        println!("{:<8}\t{:<8.2} \t{:<8.2}\t{:<16.8}", altcoin.symbol.yellow(), altcoin.amount, altcoin.amount * price_in_btc(altcoin.symbol.clone(), prices.clone()), price_in_btc(altcoin.symbol, prices.clone()));
+        println!("{:<8}\t{:<8.2} \t{:<8.2}\t{:<16.8}", altcoin.symbol.yellow(), altcoin.amount, altcoin.amount * price_in_btc(altcoin.symbol.clone(), prices.clone()).unwrap_or(0.0), price_in_btc(altcoin.symbol, prices.clone()).unwrap_or(0.0));
     }
 
-    println!("\nTotal BTC: {}", funds.total_btc(btc_price, prices.clone()));
-    println!("Total USD: {}\n", funds.total_btc(btc_price, prices) * btc_price);
+    println!("\nTotal value in BTC: {}", funds.total_btc(btc_price, prices.clone()));
+    println!("Total value in USD: {}\n", funds.total_btc(btc_price, prices) * btc_price);
 }
 
 // pub fn show_funds(funds: Vec<CoinAsset>, current_prices: Prices) {

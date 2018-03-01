@@ -94,4 +94,8 @@ impl ExchangeAPI for BittrexAPI {
             }
         }).collect())
     }
+
+    fn past_orders_for(&self, symbol: &str) -> Result<Vec<Order>, TrailerError> {
+        Err(TrailerError::unsupported())
+    }
 }

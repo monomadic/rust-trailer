@@ -87,13 +87,24 @@ impl ExchangeAPI for BinanceAPI {
     }
 
     fn open_orders(&self) -> Result<Vec<Order>, TrailerError> {
-        Err(TrailerError::unsupported())
+        Ok(self.account.get_open_orders_all()?.into_iter().map(|order| {
+            Order{
+                id:             order.order_id.to_string(),
+                symbol:         order.symbol,
+                order_type:     order.side,
+                amount:         order.executed_qty.parse::<f64>().unwrap(),
+                price:          order.orig_qty.parse::<f64>().unwrap(),
+            }
+        }).collect())
     }
 
     fn past_orders(&self) -> Result<Vec<Order>, TrailerError> {
         Err(TrailerError::unsupported())
     }
 
+    fn past_orders_for(&self, symbol: &str) -> Result<Vec<Order>, TrailerError> {
+        Err(TrailerError::unsupported())
+    }
 }
 
 use binance::errors::Error as BinanceError;

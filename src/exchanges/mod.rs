@@ -13,4 +13,5 @@ pub trait ExchangeAPI {
     fn limit_sell(&self, symbol: &str, amount: f64, price: f64) -> Result<(), TrailerError>;
     fn open_orders(&self) -> Result<Vec<Order>, TrailerError>;
     fn past_orders(&self) -> Result<Vec<Order>, TrailerError>;
+    fn past_orders_for(&self, symbol: &str) -> Result<Vec<Order>, TrailerError>;
 }
