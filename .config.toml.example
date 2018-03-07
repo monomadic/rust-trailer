@@ -1,7 +1,7 @@
-[binance]
+[exchange.binance]
     api_key = ""
     secret_key = ""
 
-[bittrex]
+[exchange.bittrex]
     api_key = ""
     secret_key = ""
