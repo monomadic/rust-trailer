@@ -4,14 +4,14 @@
 use toml;
 use error::*;
 
-#[derive(Debug, Deserialize)]
+use std::collections::BTreeMap;
+
+#[derive(Debug, Deserialize, Clone)]
 pub struct Config {
-    pub bittrex: Option<APIConfig>,
-    pub binance: Option<APIConfig>,
-    pub cobinhood: Option<APIConfig>,
+    pub exchange: BTreeMap<String, APIConfig>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct APIConfig {
     pub api_key: String,
     pub secret_key: String,

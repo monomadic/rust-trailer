@@ -38,6 +38,13 @@ impl TrailerError {
             message: format!("Missing required configuration keys for: {}", arg),
         }
     }
+
+    pub fn missing_exchange_adaptor(arg: &str) -> Self {
+        Self {
+            error_type: TrailerErrorType::ConfigError,
+            message: format!("Exchange adaptor specified in config.toml does not exist: {}", arg),
+        }
+    }
 }
 
 use bittrex::error::BittrexError as BittrexError;
