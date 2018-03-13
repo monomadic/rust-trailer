@@ -138,25 +138,25 @@ pub fn run_docopt() -> Result<(), TrailerError> {
             ::display::show_funds(trailer::types::sort_funds(funds), prices);
         }
 
-        // if args.cmd_price {
-        //     println!("getting price...");
-        //     let symbol = args.arg_symbol.ok_or(TrailerError::missing_argument("symbol"))?;
-        //     let price = client.price(&symbol)?;
+        if args.cmd_price {
+            println!("getting price...");
+            let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
+            let price = client.price(&symbol)?;
 
-        //     ::display::show_price((symbol, price));
-        // }
+            ::display::show_price((symbol, price));
+        }
 
-        // if args.cmd_buy || args.cmd_sell {
-        //     let symbol = args.arg_symbol.ok_or(TrailerError::missing_argument("symbol"))?;
-        //     let amount = args.arg_amount.ok_or(TrailerError::missing_argument("amount"))?;
-        //     let price = args.arg_price.ok_or(TrailerError::missing_argument("price"))?;
+        if args.cmd_buy || args.cmd_sell {
+            let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
+            let amount = args.arg_amount.ok_or(TrailerError::missing_argument("amount"))?;
+            let price = args.arg_price.ok_or(TrailerError::missing_argument("price"))?;
 
-        //     if args.cmd_buy {
-        //         let limit_sell = client.limit_buy(&symbol, amount, price)?;
-        //     } else if args.cmd_sell {
-        //         let limit_sell = client.limit_sell(&symbol, amount, price)?;
-        //     }
-        // }
+            if args.cmd_buy {
+                let limit_sell = client.limit_buy(&symbol, amount, price)?;
+            } else if args.cmd_sell {
+                let limit_sell = client.limit_sell(&symbol, amount, price)?;
+            }
+        }
     };
 
     // fn get_client(exchange: Exchange, keys: trailer::config::APIConfig) -> Box<ExchangeAPI> {
