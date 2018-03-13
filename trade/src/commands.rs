@@ -132,6 +132,9 @@ pub fn run_docopt() -> Result<(), TrailerError> {
             println!("getting prices...");
             let prices = client.prices()?;
 
+            println!("\n{} Balance", client.display());
+            println!("====================================================================");
+
             ::display::show_funds(trailer::types::sort_funds(funds), prices);
         }
 

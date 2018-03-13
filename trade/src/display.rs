@@ -127,9 +127,6 @@ pub fn show_price(price: Price) {
 // }
 
 pub fn show_funds(funds: Funds, prices: Prices) {
-    println!("\nBalances");
-    println!("========");
-
     let btc_price:f64 = match prices.get("BTCUSDT") {
         Some(p) => *p,
         None => 0.0,

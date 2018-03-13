@@ -23,6 +23,11 @@ pub fn connect(api_key: &str, secret_key: &str) -> BittrexAPI {
 }
 
 impl ExchangeAPI for BittrexAPI {
+    
+    fn display(&self) -> String {
+        "Bittrex".to_string()
+    }
+
     fn funds(&self) -> Result<Vec<CoinAsset>, TrailerError> {
         let balances = self.client.get_balances()?;
 

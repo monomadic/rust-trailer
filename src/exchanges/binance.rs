@@ -39,6 +39,10 @@ impl MarketEventHandler for BinanceWebSocketHandler {
 }
 
 impl ExchangeAPI for BinanceAPI {
+    
+    fn display(&self) -> String {
+        "Binance".to_string()
+    }
 
     fn funds(&self) -> Result<Vec<CoinAsset>, TrailerError> {
         let result = self.account.get_account()?;

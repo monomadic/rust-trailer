@@ -5,6 +5,7 @@ use ::types::*;
 use ::error::*;
 
 pub trait ExchangeAPI {
+    fn display(&self) -> String;
     fn funds(&self) -> Result<Vec<CoinAsset>, TrailerError>;
     fn price(&self, symbol: &str) -> Result<f64, TrailerError>;
     fn prices(&self) -> Result<Prices, TrailerError>;
