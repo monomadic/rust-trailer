@@ -51,7 +51,6 @@ pub fn show_trades(trades: Vec<Trade>) {
     // let mut profit_locked = 0.0_f64;
     // let mut profit_potential = 0.0_f64;
 
-
     println!("{:<8} {:<8} {:<20} {:<20} {:<20}", "", "Qty", "Price", "Cost", "Acc Cost");
     // calculate all profits so far
     for trade in group_trades(trades.clone()) {

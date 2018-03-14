@@ -15,3 +15,32 @@ pub trait ExchangeAPI {
     fn past_orders(&self) -> Result<Vec<Order>, TrailerError>;
     fn past_orders_for(&self, symbol: &str) -> Result<Vec<Order>, TrailerError>;
 }
+
+#[derive(Debug, Deserialize, Clone)]
+pub enum Exchange {
+    Bittrex,
+    Binance,
+}
+
+use std::str::FromStr;
+impl FromStr for Exchange {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Exchange, ()> {
+        match s {
+            "bittrex" => Ok(Exchange::Bittrex),
+            "binance" => Ok(Exchange::Binance),
+            _ => Err(()),
+        }
+    }
+}
+
+use std::string::ToString;
+impl ToString for Exchange {
+    fn to_string(&self) -> String {
+        match self {
+            &Exchange::Bittrex => "bittrex".into(),
+            &Exchange::Binance => "binance".into(),
+        }
+    }
+}
