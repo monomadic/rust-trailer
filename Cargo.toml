@@ -11,8 +11,6 @@ restson = "^0.1"
 serde = "^1.0"
 serde_derive = "^1.0"
 serde_json = "*"
-cobinhood = { git = "https://github.com/robsaunders/cobinhood-rs.git" }
-# cobinhood = { path = "../cobinhood-rs" }
 binance = { git = "https://github.com/robsaunders/binance-rs.git" }
  # binance = { path = "../_forks/binance-rs" }
 #binance = { git = "https://github.com/wisespace-io/binance-rs.git" }
