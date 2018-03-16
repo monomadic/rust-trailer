@@ -49,6 +49,7 @@ pub fn run_docopt() -> Result<(), TrailerError> {
     let keys = match args.arg_exchange {
         Exchange::Bittrex => conf.bittrex.ok_or(TrailerError::missing_config_keys("bittrex"))?,
         Exchange::Binance => conf.binance.ok_or(TrailerError::missing_config_keys("binance"))?,
+        Exchange::Kucoin  => conf.kucoin.ok_or(TrailerError::missing_config_keys("kucoin"))?,
     };
 
     let client:Box<ExchangeAPI> = match args.arg_exchange {

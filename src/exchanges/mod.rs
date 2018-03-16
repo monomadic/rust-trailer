@@ -1,5 +1,6 @@
 pub mod binance;
 pub mod bittrex;
+pub mod kucoin;
 
 use ::types::*;
 use ::error::*;
@@ -20,6 +21,7 @@ pub trait ExchangeAPI {
 pub enum Exchange {
     Bittrex,
     Binance,
+    Kucoin,
 }
 
 use std::str::FromStr;
@@ -30,6 +32,7 @@ impl FromStr for Exchange {
         match s {
             "bittrex" => Ok(Exchange::Bittrex),
             "binance" => Ok(Exchange::Binance),
+            "kucoin" => Ok(Exchange::Binance),
             _ => Err(()),
         }
     }
@@ -41,6 +44,7 @@ impl ToString for Exchange {
         match self {
             &Exchange::Bittrex => "bittrex".into(),
             &Exchange::Binance => "binance".into(),
+            &Exchange::Kucoin => "kucoin".into(),
         }
     }
 }

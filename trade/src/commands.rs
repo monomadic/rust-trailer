@@ -11,7 +11,7 @@ const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 const USAGE: &'static str = "
 Usage:
     trade [<exchange>] funds
-    trade <exchange> orders
+    trade [<exchange>] orders
     trade <exchange> past-orders
     trade <exchange> price <symbol>
     trade <exchange> (buy|sell) <symbol> <amount> <price>
@@ -68,6 +68,7 @@ pub fn run_docopt() -> Result<(), TrailerError> {
         match exchange {
             Exchange::Bittrex => Box::new(trailer::exchanges::bittrex::connect(&keys.api_key, &keys.secret_key)),
             Exchange::Binance => Box::new(trailer::exchanges::binance::connect(&keys.api_key, &keys.secret_key)),
+            Exchange::Kucoin  => Box::new(trailer::exchanges::kucoin::connect(&keys.api_key, &keys.secret_key)),
         }
     };
 

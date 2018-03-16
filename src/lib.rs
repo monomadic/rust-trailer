@@ -3,6 +3,7 @@ extern crate colored;
 extern crate docopt;
 extern crate bittrex_api as bittrex;
 extern crate reqwest;
+extern crate kucoin;
 
 extern crate toml;
 #[macro_use]
