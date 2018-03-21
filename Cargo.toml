@@ -14,8 +14,8 @@ serde_json = "*"
 binance = { git = "https://github.com/robsaunders/binance-rs.git" }
  # binance = { path = "../_forks/binance-rs" }
 #binance = { git = "https://github.com/wisespace-io/binance-rs.git" }
-kucoin = { git = "https://github.com/robsaunders/kucoin-rs.git" }
-# kucoin = { path = "../kucoin-rs" }
+# kucoin = { git = "https://github.com/robsaunders/kucoin-rs.git" }
+kucoin = { path = "../kucoin-rs" }
 colored = "1.5"
 docopt = "0.8"
 bittrex-api = { git = "https://github.com/robsaunders/bittrex-api.git" }

@@ -47,16 +47,6 @@ impl TrailerError {
     }
 }
 
-use bittrex::error::BittrexError as BittrexError;
-impl From<BittrexError> for TrailerError {
-    fn from(error: BittrexError) -> Self {
-        TrailerError {
-            error_type: TrailerErrorType::APIError,
-            message: error.message,
-        }
-    }
-}
-
 impl From<::std::num::ParseFloatError> for TrailerError {
     fn from(error: ::std::num::ParseFloatError) -> Self {
         TrailerError {

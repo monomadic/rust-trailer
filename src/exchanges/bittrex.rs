@@ -13,6 +13,16 @@ pub struct BittrexAPI {
     client: BittrexClient,
 }
 
+use bittrex::error::BittrexError as BittrexError;
+impl From<BittrexError> for TrailerError {
+    fn from(error: BittrexError) -> Self {
+        TrailerError {
+            error_type: TrailerErrorType::APIError,
+            message: error.message,
+        }
+    }
+}
+
 pub fn connect(api_key: &str, secret_key: &str) -> BittrexAPI {
     BittrexAPI {
         client: BittrexClient::new(

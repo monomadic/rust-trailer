@@ -5,13 +5,27 @@ use kucoin;
 
 use ::types::*;
 use ::error::*;
-use ::exchanges::ExchangeAPI;
+use ::exchanges::{ ExchangeAPI, Exchange };
+
+use std::collections::HashMap;
 
 pub struct KucoinAPI {
+    client: kucoin::Client,
 }
 
 pub fn connect(api_key: &str, secret_key: &str) -> KucoinAPI {
     KucoinAPI {
+        client: kucoin::Client::new(api_key, secret_key)
+    }
+}
+
+use kucoin::error::KucoinError;
+impl From<KucoinError> for TrailerError {
+    fn from(error: KucoinError) -> Self {
+        TrailerError {
+            error_type: TrailerErrorType::APIError,
+            message: error.message,
+        }
     }
 }
 
@@ -21,7 +35,14 @@ impl ExchangeAPI for KucoinAPI {
     }
 
     fn funds(&self) -> Result<Vec<CoinAsset>, TrailerError> {
-        Err(TrailerError::unsupported())
+        Ok(self.client.balances()?.into_iter().map(|balance| {
+            CoinAsset {
+                symbol:     balance.symbol,
+                amount:     balance.total,
+                locked:     balance.locked,
+                exchange:   "Kucoin".to_string(),
+            }
+        }).collect())
     }
 
     fn price(&self, symbol: &str) -> Result<f64, TrailerError> {
@@ -29,7 +50,17 @@ impl ExchangeAPI for KucoinAPI {
     }
 
     fn prices(&self) -> Result<Prices, TrailerError> {
-        Err(TrailerError::unsupported())
+        let response = self.client.prices()?;
+        let mut p = HashMap::new();
+
+        for coin in response {
+            p.insert(
+                coin.symbol,
+                coin.last_price
+            );
+        }
+        
+        Ok(p)
     }
 
     fn limit_buy(&self, symbol: &str, amount: f64, price: f64) -> Result<(), TrailerError> {
