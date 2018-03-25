@@ -34,13 +34,29 @@ impl ExchangeAPI for KucoinAPI {
         "Kucoin".into()
     }
 
-    fn funds(&self) -> Result<Vec<CoinAsset>, TrailerError> {
-        Ok(self.client.balances()?.into_iter().map(|balance| {
+    fn funds(&self) -> Result<Funds, TrailerError> {
+        let balances = self.balances()?;
+        let prices = self.prices()?;
+
+        Ok(Funds {
+            btc:    balances.clone().into_iter().find(|c| c.symbol == "BTC"),
+            fiat:   balances.clone().into_iter().filter(|c| c.symbol == "USDT").collect(),
+            alts:   balances.into_iter().filter(|c| c.symbol != "USDT" && c.symbol != "BTC").collect(),
+            total_value_in_usd: 33.0,
+            total_value_in_btc: 44.0,
+        })
+    }
+
+    fn balances(&self) -> Result<Vec<CoinAsset>, TrailerError> {
+        // println!("BALANCE in FUNDS(): {:?}", self.client.balance());
+        Ok(self.client.balance()?.into_iter().map(|balance| {
             CoinAsset {
-                symbol:     balance.symbol,
-                amount:     balance.total,
-                locked:     balance.locked,
-                exchange:   "Kucoin".to_string(),
+                symbol:         balance.symbol,
+                amount:         balance.balance,
+                locked:         balance.locked,
+                exchange:       Exchange::Kucoin,
+                value_in_btc:   None,
+                value_in_usd:   None,
             }
         }).collect())
     }
@@ -50,8 +66,10 @@ impl ExchangeAPI for KucoinAPI {
     }
 
     fn prices(&self) -> Result<Prices, TrailerError> {
-        let response = self.client.prices()?;
+        let response = self.client.symbols()?;
         let mut p = HashMap::new();
+
+        // println!("\n\nresponse: {:?}", response);
 
         for coin in response {
             p.insert(

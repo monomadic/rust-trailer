@@ -15,6 +15,7 @@ pub enum TrailerErrorType {
     CommandError,
     ConfigError,
     Unsupported,
+    Generic,
 }
 
 impl TrailerError {
@@ -43,6 +44,13 @@ impl TrailerError {
         Self {
             error_type: TrailerErrorType::ConfigError,
             message: format!("Exchange adaptor specified in config.toml does not exist: {}", arg),
+        }
+    }
+
+    pub fn generic(arg: &str) -> Self {
+        Self {
+            error_type: TrailerErrorType::Generic,
+            message: arg.into(),
         }
     }
 }

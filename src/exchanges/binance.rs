@@ -12,7 +12,7 @@ use std::collections::HashMap;
 
 use ::types::*;
 use ::error::*;
-use ::exchanges::ExchangeAPI;
+use ::exchanges::*;
 
 pub struct BinanceAPI {
     account: Account,
@@ -44,7 +44,45 @@ impl ExchangeAPI for BinanceAPI {
         "Binance".to_string()
     }
 
-    fn funds(&self) -> Result<Vec<CoinAsset>, TrailerError> {
+    fn funds(&self) -> Result<Funds, TrailerError> {
+        let balances = self.balances()?;
+        let prices = self.prices()?;
+        let mut btc = balances.clone().into_iter().find(|c| c.symbol == "BTC");
+        let usdt = balances.clone().into_iter().find(|c| c.symbol == "USDT");
+
+        let alts_all:Vec<CoinAsset> = balances.clone().into_iter().filter(|c| c.symbol != "USDT" && c.symbol != "BTC").collect();
+        let mut alts:Vec<CoinAsset> = alts_all.into_iter().filter(|c| c.amount > 0.9).collect();
+        
+        println!("prices = {:?}", prices);
+
+        let &btc_price = prices.get("BTCUSDT").expect("BTCUSDT does not exist in binance price list");
+
+        // assign a price to btc if it exists.
+        if let Some(ref mut b) = btc {
+            b.value_in_btc = Some(1.0);
+            b.value_in_usd = Some(btc_price);
+        }
+        
+        // add prices
+        for mut alt in alts.iter_mut() {
+            alt.value_in_btc = prices.get(&format!("{}{}", alt.symbol, "BTC")).cloned();
+        }
+
+        // sum total prices
+        let total_usd_price:f64 = alts.iter().map(|a| a.value_in_usd.unwrap_or(0.0) * a.amount).sum();
+        let total_btc_price:f64 = alts.iter().map(|a| a.value_in_btc.unwrap_or(0.0) * a.amount).sum();
+
+        Ok(Funds {
+            btc:                btc,
+            fiat:               balances.clone().into_iter().filter(|c| c.symbol == "USDT").collect(),
+            alts:               alts,
+            total_value_in_usd: total_usd_price,
+            total_value_in_btc: total_btc_price,
+        })
+    }
+
+    /// Simple list of balances
+    fn balances(&self) -> Result<Vec<CoinAsset>, TrailerError> {
         let result = self.account.get_account()?;
 
         Ok(result.balances.into_iter().map(|balance| {
@@ -52,7 +90,9 @@ impl ExchangeAPI for BinanceAPI {
                 symbol: balance.asset,
                 amount: balance.free.parse::<f64>().unwrap() + balance.locked.parse::<f64>().unwrap(),
                 locked: balance.locked.parse::<f64>().unwrap(),
-                exchange: "Binance".to_string(),
+                exchange: Exchange::Binance,
+                value_in_btc: None,
+                value_in_usd: None,
             }
         }).collect())
     }

@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 use ::types::*;
 use ::error::*;
-use ::exchanges::ExchangeAPI;
+use ::exchanges::*;
 
 pub struct BittrexAPI {
     client: BittrexClient,
@@ -38,7 +38,20 @@ impl ExchangeAPI for BittrexAPI {
         "Bittrex".to_string()
     }
 
-    fn funds(&self) -> Result<Vec<CoinAsset>, TrailerError> {
+    fn funds(&self) -> Result<Funds, TrailerError> {
+        let balances = self.balances()?;
+        let prices = self.prices()?;
+
+        Ok(Funds {
+            btc:    balances.clone().into_iter().find(|c| c.symbol == "BTC"),
+            fiat:   balances.clone().into_iter().filter(|c| c.symbol == "USDT").collect(),
+            alts:   balances.into_iter().filter(|c| c.symbol != "USDT" && c.symbol != "BTC").collect(),
+            total_value_in_usd: 33.0,
+            total_value_in_btc: 44.0,
+        })
+    }
+
+    fn balances(&self) -> Result<Vec<CoinAsset>, TrailerError> {
         let balances = self.client.get_balances()?;
 
         Ok(balances.into_iter().map(|balance| {
@@ -46,7 +59,9 @@ impl ExchangeAPI for BittrexAPI {
                 symbol: balance.currency,
                 amount: balance.balance as f64,
                 locked: (balance.balance - balance.available) as f64,
-                exchange: "Bittrex".to_string(),
+                exchange: Exchange::Bittrex,
+                value_in_btc: None,
+                value_in_usd: None,
             }
         }).collect())
     }

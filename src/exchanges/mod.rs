@@ -7,7 +7,8 @@ use ::error::*;
 
 pub trait ExchangeAPI {
     fn display(&self) -> String;
-    fn funds(&self) -> Result<Vec<CoinAsset>, TrailerError>;
+    fn funds(&self) -> Result<Funds, TrailerError>;
+    fn balances(&self) -> Result<Vec<CoinAsset>, TrailerError>;
     fn price(&self, symbol: &str) -> Result<f64, TrailerError>;
     fn prices(&self) -> Result<Prices, TrailerError>;
     fn limit_buy(&self, symbol: &str, amount: f64, price: f64) -> Result<(), TrailerError>;
