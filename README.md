@@ -1,6 +1,12 @@
 # Trailer
 
-Cryptocurrency toolchain for command line, serving as a tooling front end for various libraries to interact with exchange and crypto ranking APIs, run bots, and generate statistics on your cryptocurrency portfolio.
+Cryptocurrency exchange library for interacting with various exchanges, currently supporting:
+
+- Binance
+- Bittrex
+- Kucoin
+
+There is also a small toolchain for interacting with apis on the command line and the initial stages of bot trading.
 
 ## Build
 
