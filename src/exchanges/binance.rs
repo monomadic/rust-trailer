@@ -52,8 +52,6 @@ impl ExchangeAPI for BinanceAPI {
 
         let alts_all:Vec<CoinAsset> = balances.clone().into_iter().filter(|c| c.symbol != "USDT" && c.symbol != "BTC").collect();
         let mut alts:Vec<CoinAsset> = alts_all.into_iter().filter(|c| c.amount > 0.9).collect();
-        
-        println!("prices = {:?}", prices);
 
         let &btc_price = prices.get("BTCUSDT").expect("BTCUSDT does not exist in binance price list");
 
@@ -69,16 +67,18 @@ impl ExchangeAPI for BinanceAPI {
         }
 
         // sum total prices
-        let total_usd_price:f64 = alts.iter().map(|a| a.value_in_usd.unwrap_or(0.0) * a.amount).sum();
-        let total_btc_price:f64 = alts.iter().map(|a| a.value_in_btc.unwrap_or(0.0) * a.amount).sum();
+        // let total_usd_price:f64 = alts.iter().map(|a| a.value_in_usd.unwrap_or(0.0) * a.amount).sum();
+        // let total_btc_price:f64 = alts.iter().map(|a| a.value_in_btc.unwrap_or(0.0) * a.amount).sum() + btc.unwrap().value_in_btc.unwrap_or(0.0);
 
-        Ok(Funds {
+        let funds = Funds {
             btc:                btc,
             fiat:               balances.clone().into_iter().filter(|c| c.symbol == "USDT").collect(),
             alts:               alts,
-            total_value_in_usd: total_usd_price,
-            total_value_in_btc: total_btc_price,
-        })
+            total_value_in_usd: 0.0,
+            total_value_in_btc: 0.0,
+        }.calculate_totals();
+
+        Ok(funds)
     }
 
     /// Simple list of balances

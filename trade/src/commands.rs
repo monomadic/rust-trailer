@@ -102,12 +102,6 @@ pub fn run_docopt() -> Result<(), TrailerError> {
             println!("getting funds...");
             let funds = client.funds()?;
 
-            println!("getting prices...");
-            // let prices = client.prices()?;
-
-            // println!("{:?}", (trailer::types::sort_funds(funds.clone())));
-            // println!("PRCIESS {:?}", prices);
-
             println!("\n{} Balance", client.display());
             println!("====================================================================");
 

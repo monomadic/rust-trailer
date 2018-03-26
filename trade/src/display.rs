@@ -126,7 +126,7 @@ pub fn show_price(price: Price) {
 // }
 
 pub fn show_funds(funds: Funds) {
-    println!("funds: {:?}", funds);
+    // println!("funds: {:?}", funds);
     // let mut btc_price:f64 = match prices.get("BTCUSDT") {
     //     Some(p) => *p,
     //     None => 0.0,
@@ -142,7 +142,7 @@ pub fn show_funds(funds: Funds) {
     // println!("{}", format!("{:8}\t{:8} \t{:8}\t{:16}", "Coin", "Amount", "Value BTC", "Current Price"));
 
     if let Some(btc) = funds.clone().btc {
-        let value_in_usd = btc.value_in_usd.unwrap_or(0.0);
+        let value_in_usd = btc.value_in_usd.unwrap_or(0.0); // (value_in_usd * 1.0 / btc.amount)
         println!("{:<8}\t{:<8.2} \t{:<8.2}\t{:<16.8}", "BTC".blue(), btc.amount, (value_in_usd * btc.amount), value_in_usd);
     }
 
@@ -152,7 +152,7 @@ pub fn show_funds(funds: Funds) {
 
     for altcoin in funds.clone().alts {
         let value_in_btc = altcoin.value_in_btc.unwrap_or(0.0);
-        println!("{:<8}\t{:<8.2} \t{:<8.2}\t{:<16.8}", altcoin.symbol, altcoin.amount, (value_in_btc * altcoin.amount), value_in_btc);
+        println!("{:<8}\t{:<8.2} \t{:<8.3}\t{:<16.8}", altcoin.symbol.yellow(), altcoin.amount, (value_in_btc * altcoin.amount), value_in_btc);
     }
 
     // for altcoin in funds.clone().alts {
@@ -181,8 +181,8 @@ pub fn show_funds(funds: Funds) {
     // println!("\nTotal value in BTC: {}", funds.total_btc(btc_price, prices.clone()));
     // println!("Total value in USD: {}\n", funds.total_btc(btc_price, prices) * btc_price);
 
-    println!("\nTotal value in BTC: {}", funds.total_value_in_btc);
-    println!("Total value in USD: {}\n", funds.total_value_in_usd);
+    println!("\nTotal value in BTC: {:.3}", funds.total_value_in_btc);
+    println!("Total value in USD: {:.3}\n", funds.total_value_in_usd);
 }
 
 // pub fn show_funds(funds: Vec<CoinAsset>, current_prices: Prices) {
