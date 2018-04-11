@@ -15,32 +15,13 @@ Usage:
     trade <exchange> past-orders
     trade <exchange> price <symbol>
     trade <exchange> (buy|sell) <symbol> <amount> <price>
+    trade <exchange> (sl|sg) <symbol> <amount> <price>
 
 Exchange:
     binance
     bittrex
     kucoin
 ";
-
-//     trade binance funds
-//     trade binance ls <coin>
-//     trade binance buckets <coin>
-//     trade binance all
-//     trade binance trades
-//     trade binance price <symbol>
-//     trade binance buy <pair> <amount> <price>
-//     trade binance sell <pair> <amount> <price>
-//     trade binance orders cancel
-//     trade binance orders ls <pairs>
-//     trade bittrex funds
-//     trade bittrex prices
-//     trade bittrex orders ls
-//     trade bittrex history
-//     trade cob time
-//     trade cob funds
-//     trade bot run
-//     trade bot backtest <csv>
-//     trade caps
 
 #[derive(Debug, Deserialize)]
 struct Args {
@@ -49,6 +30,8 @@ struct Args {
     cmd_price: bool,
     cmd_buy: bool,
     cmd_sell: bool,
+    cmd_sl: bool,
+    cmd_sg: bool,
     cmd_orders: bool,
     cmd_past_orders: bool,
     arg_symbol: Option<String>,
@@ -121,10 +104,18 @@ pub fn run_docopt() -> Result<(), TrailerError> {
             let amount = args.arg_amount.ok_or(TrailerError::missing_argument("amount"))?;
             let price = args.arg_price.ok_or(TrailerError::missing_argument("price"))?;
 
+            // let price = client.price(&symbol)?;
+            // println!("current price for ")
+            // ::display::show_price((symbol, price));
+
             if args.cmd_buy {
                 let limit_sell = client.limit_buy(&symbol, amount, price)?;
             } else if args.cmd_sell {
                 let limit_sell = client.limit_sell(&symbol, amount, price)?;
+            }
+
+            if args.cmd_buy || args.cmd_sell {
+                println!("stop loss/gain");
             }
         }
     };

@@ -14,9 +14,14 @@ There is also a small toolchain for interacting with apis on the command line an
 cargo build --all
 ```
 
-To run a specific tool, for example, trade:
+There are two interfaces to use the tool. An interactive TUI-based (text ui) client and a simple cli version. To compile the TUI version for example, run:
 ```bash
-cargo run --package trade
+cargo run --package tui
+```
+
+You should copy the cli and tui versions to a runnable location and run from there. Something like:
+```bash
+cargo build --all & cp target/debug/cli ~/.bin/trade-cli & cp target/debug/tui cp ~/.bin/trade
 ```
 
 ## Trade

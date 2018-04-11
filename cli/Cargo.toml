@@ -1,5 +1,5 @@
 [package]
-name = "trade"
+name = "cli"
 version = "0.1.0"
 authors = ["Rob Saunders <rob@wearebrandnew.com>"]
 
@@ -10,3 +10,6 @@ toml = "*"
 serde = "^1.0"
 serde_derive = "^1.0"
 trailer = { path = "../" }
+
+[[bin]]
+name = "trade-cli"

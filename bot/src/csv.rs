@@ -1,4 +1,4 @@
-use ::error::*;
+use trailer::error::*;
 
 pub fn load_backtest_data(file: &str) -> Result<Vec<f64>, TrailerError> {
     use std::io::Read;
