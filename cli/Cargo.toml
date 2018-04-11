@@ -13,3 +13,4 @@ trailer = { path = "../" }
 
 [[bin]]
 name = "trade-cli"
+path = "main.rs"
