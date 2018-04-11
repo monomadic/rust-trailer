@@ -14,6 +14,6 @@ mod display;
 fn main() {
     match ::commands::run_docopt() {
         Ok(_) => println!("done."),
-        Err(e) => display::show_error(e),
+        Err(e) => display::error(e),
     }
 }

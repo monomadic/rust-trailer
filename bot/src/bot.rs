@@ -1,4 +1,5 @@
 use trailer;
+use error::*;
 
 pub struct Bot {
     pub symbol: String,
@@ -6,11 +7,11 @@ pub struct Bot {
 }
 
 impl Bot {
-    pub fn run(&self) {
+    pub fn run(&self) -> Result<(), BotError> {
         println!("bot started.");
         let current_position = 0.0_f64;
 
-        trailer::exchanges::binance::ws(self.symbol.clone());
+        Ok(trailer::exchanges::binance::ws(self.symbol.clone()))
     }
 
     pub fn backtest(&self, prices: Vec<f64>) {
@@ -51,7 +52,7 @@ impl Bot {
     //     println!("time's up!");
     // }
 
-    pub fn load_config(_config_file: String) -> Self {
+    pub fn new_with_config(_config_file: &str) -> Self {
         Self {
             symbol: "icxbtc".to_string(),
             // entries

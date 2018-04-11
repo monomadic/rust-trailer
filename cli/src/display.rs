@@ -5,7 +5,7 @@ use colored::*;
 use trailer::types::*;
 use trailer::error::*;
 
-pub fn show_error(error: TrailerError) {
+pub fn error(error: TrailerError) {
     println!("{}", format!("Error: {}", error.message).red());
 }
 
