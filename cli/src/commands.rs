@@ -85,9 +85,7 @@ pub fn run_docopt() -> Result<(), TrailerError> {
             println!("getting funds...");
             let funds = client.funds()?;
 
-            println!("\n{} Balance", client.display());
-            println!("====================================================================");
-
+            ::display::title_bar(format!("\n{} Balance", client.display()));
             ::display::show_funds(funds);
         }
 

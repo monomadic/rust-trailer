@@ -9,6 +9,11 @@ pub fn error(error: TrailerError) {
     println!("{}", format!("Error: {}", error.message).red());
 }
 
+pub fn title_bar(msg: &str) {
+    println!("\n{}", msg);
+    println!("====================================================================");
+}
+
 pub fn colored_balance(num: f64) -> String {
     if num > 0.0 {
         format!("{}{}", num.to_string().green(), "".white())
