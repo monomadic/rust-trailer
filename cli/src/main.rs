@@ -10,6 +10,7 @@ extern crate trailer;
 
 mod commands;
 mod display;
+mod input;
 
 fn main() {
     match ::commands::run_docopt() {

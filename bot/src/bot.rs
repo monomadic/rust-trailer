@@ -1,9 +1,30 @@
-use trailer;
+// use trailer;
 use error::*;
 
+use binance::websockets::*;
+use binance::model::{ TradesEvent, DepthOrderBookEvent, OrderBook };
+
+#[derive(Clone)]
 pub struct Bot {
     pub symbol: String,
     // entries: Vec<(f64)>, // positions at which to enter the market
+    previous_price: f64,
+}
+
+impl MarketEventHandler for Bot {
+    fn aggregated_trades_handler(&self, event: &TradesEvent) {
+        // println!(
+        //     "- Symbol: {}, price: {}, qty: {}",
+        //     event.symbol, event.price, event.qty
+        // );
+        println!("- Event: {:?}", event);
+    }
+    fn depth_orderbook_handler(&self, model: &DepthOrderBookEvent) {
+        println!("- Depth Order Book: {:?}", model);
+    }
+    fn partial_orderbook_handler(&self, model: &OrderBook) {
+        println!("- Partial Order Book: {:?}", model);
+    }
 }
 
 impl Bot {
@@ -11,17 +32,32 @@ impl Bot {
         println!("bot started.");
         let current_position = 0.0_f64;
 
-        Ok(trailer::exchanges::binance::ws(self.symbol.clone()))
+        println!("attempting to connect to binance with symbol: {}", &self.symbol);
+        let agg_trade: String = format!("{}@aggTrade", self.symbol);
+        let mut web_socket: WebSockets = WebSockets::new();
+
+        web_socket.add_market_handler(self.clone());
+        web_socket.connect(&agg_trade).unwrap(); // check error
+        web_socket.event_loop();
+
+        // Ok(trailer::exchanges::binance::ws(self.symbol.clone()))
+        Ok(())
     }
 
-    pub fn backtest(&self, prices: Vec<f64>) {
+    pub fn backtest(&self, prices: Vec<f64>) -> Result<(), BotError> {
         let price = 10.0;
         let buy_price = prices.first().unwrap();
 
         for price in prices.clone() {
             let stop = price - (price * 0.1);
             println!("price: {}, stop: {}", price, stop);
+            self.evaluate_state(price);
         }
+
+        Ok(())
+    }
+
+    pub fn evaluate_state(&self, price: f64) {
     }
 
     // pub fn backtest(&self, prices: Vec<f64>) {
@@ -56,6 +92,7 @@ impl Bot {
         Self {
             symbol: "icxbtc".to_string(),
             // entries
+            previous_price: 0.0,
         }
     }
 }

@@ -2,6 +2,7 @@
 #![allow(unused_variables)]
 
 extern crate trailer;
+extern crate binance;
 
 //use ratelimit;
 //use std::thread;
@@ -16,7 +17,9 @@ mod error;
 
 fn main() {
     let bot = Bot::new_with_config("./data/bots/new.toml");
-    match bot.run() {
+    let csv = csv::load_backtest_data("./data/backtests/new.csv").expect("csv failed to load");
+
+    match bot.backtest(csv) {
         Ok(_) => println!("done."),
         Err(e) => println!("error: {:?}", e),
     }

@@ -6,3 +6,4 @@ authors = ["Rob Saunders <rob@wearebrandnew.com>"]
 [dependencies]
 docopt = "0.8"
 trailer = { path = "../" }
+binance = { git = "https://github.com/robsaunders/binance-rs.git" }
