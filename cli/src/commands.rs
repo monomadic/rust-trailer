@@ -109,16 +109,6 @@ pub fn run_docopt() -> Result<(), TrailerError> {
             let amount = args.arg_amount.ok_or(TrailerError::missing_argument("amount"))?;
             let price = args.arg_price.ok_or(TrailerError::missing_argument("price"))?;
 
-            // let price = client.price(&symbol)?;
-            // println!("current price for ")
-            // ::display::show_price((symbol, price));
-
-            // if args.cmd_buy {
-            //     let limit_sell = client.limit_buy(&symbol, amount, price)?;
-            // } else if args.cmd_sell {
-            //     let limit_sell = client.limit_sell(&symbol, amount, price)?;
-            // }
-
             if args.cmd_buy || args.cmd_sell {
                 println!("stop loss/gain");
             }
@@ -138,7 +128,7 @@ pub fn run_docopt() -> Result<(), TrailerError> {
             print!("amount (10): ");
             let amount = ::input::get_f64(10.)?;
 
-            println!("\nbuying {} {} at {}. total price: {:.8}.", amount, symbol, buy_price, price * amount);
+            println!("\ncreating limit order of {} {} at {}. total price: {:.8}.", amount, symbol, buy_price, price * amount);
             print!("\ncontinue with purchase? (y/N) ");
             match ::input::get_confirmation()? {
                 true => println!("\npurchasing..."),
