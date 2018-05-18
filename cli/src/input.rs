@@ -1,15 +1,41 @@
+use trailer::error::TrailerError;
 
-pub fn getln() {
+pub fn get_str(default: &str) -> Result<String, TrailerError> {
     use std::io::{stdin,stdout,Write};
+
     let mut s=String::new();
-    print!("Please enter some text: ");
     let _=stdout().flush();
-    stdin().read_line(&mut s).expect("Did not enter a correct string");
+
+    let input_char_length = stdin().read_line(&mut s)?;
+
+    if input_char_length == 1 {
+        s = default.to_string();
+    }
+
+    // trim
     if let Some('\n')=s.chars().next_back() {
         s.pop();
     }
+
     if let Some('\r')=s.chars().next_back() {
         s.pop();
     }
-    println!("You typed: {}",s);
+
+    Ok(s)
+}
+
+pub fn get_f64(default: f64) -> Result<f64, TrailerError> {
+    Ok(get_str(&format!("{}", default))?.parse::<f64>()?)
+}
+
+pub fn get_confirmation() -> Result<bool, TrailerError> {
+    let result = get_str("N")?;
+
+    // if result == "y" {
+    //     println!("yes!");
+    // } else {
+    //     println!("no!");
+    // }
+
+    Ok(result == "y")
 }

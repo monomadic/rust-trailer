@@ -61,10 +61,12 @@ pub fn run_docopt() -> Result<(), TrailerError> {
         }
     };
 
-    if let Some(arg_exchange) = args.arg_exchange { // if the user supplied an exchange
+    if let Some(arg_exchange) = args.arg_exchange {
+        // user supplied a specific exchange.
         let exchange_keys = &conf.exchange[&arg_exchange.to_string()];
         clients.push(get_client(arg_exchange, exchange_keys.clone()));
     } else {
+        // try to use all exchanges in the config.
         for (exchange, config) in conf.exchange {
             match exchange.parse::<Exchange>() {
                 Ok(e) => {
@@ -99,8 +101,6 @@ pub fn run_docopt() -> Result<(), TrailerError> {
             let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
             let price = client.price(&symbol)?;
 
-            ::input::getln();
-
             ::display::show_price((symbol, price));
         }
 
@@ -128,10 +128,23 @@ pub fn run_docopt() -> Result<(), TrailerError> {
             let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
             let price = client.price(&symbol)?;
 
-            println!("current price: {}", price);
+            println!("{}:", symbol);
+            println!("current price {}\n", price);
 
-            println!("\nbuy price: ");
-            ::input::getln();
+            print!("price ({}): ", price);
+            let buy_price = ::input::get_f64(price)?;
+            if buy_price > price { println!("WARNING: your buy price is higher than the current price!"); }
+
+            print!("amount (10): ");
+            let amount = ::input::get_f64(10.)?;
+
+            println!("\nbuying {} {} at {}. total price: {:.8}.", amount, symbol, buy_price, price * amount);
+            print!("\ncontinue with purchase? (y/N) ");
+            match ::input::get_confirmation()? {
+                true => println!("\npurchasing..."),
+                false => println!("\nno purchase made."),
+            }
+
         }
     };
 
