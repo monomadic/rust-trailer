@@ -15,7 +15,8 @@ Usage:
     trade <exchange> past-orders
     trade <exchange> price <symbol>
     trade <exchange> (buy|sell) <symbol> <amount> <price>
-    trade <exchange> (sl|sg) <symbol> <amount> <price>
+    trade <exchange> stop (loss|gain) <symbol> <amount> <price>
+    trade <exchange> b <symbol>
 
 Exchange:
     binance
@@ -26,14 +27,18 @@ Exchange:
 #[derive(Debug, Deserialize)]
 struct Args {
     arg_exchange: Option<Exchange>,
+
     cmd_funds: bool,
     cmd_price: bool,
     cmd_buy: bool,
     cmd_sell: bool,
-    cmd_sl: bool,
-    cmd_sg: bool,
+    cmd_stop: bool,
+    cmd_loss: bool,
+    cmd_gain: bool,
     cmd_orders: bool,
     cmd_past_orders: bool,
+    cmd_b: bool,
+
     arg_symbol: Option<String>,
     arg_amount: Option<f64>,
     arg_price: Option<f64>,
@@ -85,7 +90,7 @@ pub fn run_docopt() -> Result<(), TrailerError> {
             println!("getting funds...");
             let funds = client.funds()?;
 
-            ::display::title_bar(format!("\n{} Balance", client.display()));
+            ::display::title_bar(&format!("\n{} Balance", client.display()));
             ::display::show_funds(funds);
         }
 
@@ -94,10 +99,12 @@ pub fn run_docopt() -> Result<(), TrailerError> {
             let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
             let price = client.price(&symbol)?;
 
+            ::input::getln();
+
             ::display::show_price((symbol, price));
         }
 
-        if args.cmd_buy || args.cmd_sell {
+        if args.cmd_stop {
             let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
             let amount = args.arg_amount.ok_or(TrailerError::missing_argument("amount"))?;
             let price = args.arg_price.ok_or(TrailerError::missing_argument("price"))?;
@@ -106,15 +113,25 @@ pub fn run_docopt() -> Result<(), TrailerError> {
             // println!("current price for ")
             // ::display::show_price((symbol, price));
 
-            if args.cmd_buy {
-                let limit_sell = client.limit_buy(&symbol, amount, price)?;
-            } else if args.cmd_sell {
-                let limit_sell = client.limit_sell(&symbol, amount, price)?;
-            }
+            // if args.cmd_buy {
+            //     let limit_sell = client.limit_buy(&symbol, amount, price)?;
+            // } else if args.cmd_sell {
+            //     let limit_sell = client.limit_sell(&symbol, amount, price)?;
+            // }
 
             if args.cmd_buy || args.cmd_sell {
                 println!("stop loss/gain");
             }
+        }
+
+        if args.cmd_b {
+            let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
+            let price = client.price(&symbol)?;
+
+            println!("current price: {}", price);
+
+            println!("\nbuy price: ");
+            ::input::getln();
         }
     };
 

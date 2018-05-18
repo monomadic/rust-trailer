@@ -1,5 +1,5 @@
 [workspace]
-members = ["cli", "bot", "tui"]
+members = ["cli", "bot"]
 
 [package]
 name = "trailer"

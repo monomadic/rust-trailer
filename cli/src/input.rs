@@ -1,5 +1,5 @@
 
-fn getln() {
+pub fn getln() {
     use std::io::{stdin,stdout,Write};
     let mut s=String::new();
     print!("Please enter some text: ");

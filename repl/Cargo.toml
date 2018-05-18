@@ -1,12 +1,8 @@
 [package]
-name = "cli"
+name = "repl"
 version = "0.1.0"
 authors = ["Rob Saunders <rob@wearebrandnew.com>"]
 
 [dependencies]
 colored = "1.5"
-docopt = "0.8"
-toml = "*"
-serde = "^1.0"
-serde_derive = "^1.0"
 trailer = { path = "../" }

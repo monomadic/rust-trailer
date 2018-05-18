@@ -23,7 +23,7 @@ impl From<::std::io::Error> for TrailerError {
 
         TrailerError {
             error_type: TrailerErrorType::ConfigError,
-            message: format!("Error reading .config.toml: {}", error.description()),
+            message: format!("cannot read .config.toml: {}", error.description()),
         }
     }
 }
@@ -34,7 +34,7 @@ impl From<::std::string::FromUtf8Error> for TrailerError {
 
         TrailerError {
             error_type: TrailerErrorType::ConfigError,
-            message: format!("Error converting .config.toml to UTF8: {}", error.description()),
+            message: format!("cannot parse .config.toml to UTF8: {}", error.description()),
         }
     }
 }
@@ -45,19 +45,47 @@ impl From<::toml::de::Error> for TrailerError {
 
         TrailerError {
             error_type: TrailerErrorType::ConfigError,
-            message: format!("Error reading .config.toml: {}", error.description()),
+            message: format!("cannot read .config.toml: {}", error.description()),
         }
     }
 }
 
 pub fn read() -> Result<Config, TrailerError> {
-    Ok(toml::from_str(&str_from_file(".config.toml")?)?)
-}
+    pub fn file_exists(path: &str) -> bool {
+        use std::fs;
 
-fn str_from_file(file: &str) -> Result<String, TrailerError> {
-    use std::io::prelude::*;
-    let mut handle = ::std::fs::File::open(file)?;
-    let mut bytebuffer = Vec::new();
-    handle.read_to_end(&mut bytebuffer)?;
-    return Ok(String::from_utf8(bytebuffer)?)
+        match fs::metadata(path) {
+            Ok(p) => p.is_file(),
+            Err(_) => false,
+        }
+    }
+
+    fn str_from_file_path(path: &str) -> Result<String, TrailerError> {
+        use std::io::prelude::*;
+
+        let mut handle = ::std::fs::File::open(path)?;
+        let mut bytebuffer = Vec::new();
+
+        handle.read_to_end(&mut bytebuffer)?;
+
+        return Ok(String::from_utf8(bytebuffer)?)
+    }
+
+    let home_path = ::std::env::home_dir().ok_or(TrailerError::generic("cannot get homedir"))?;
+
+    // search paths for config files, in order of search preference.
+    let search_paths = vec![
+        format!("./.config.toml"),
+        format!("{}/.config.toml", home_path.display()),
+        format!("{}/.crypto/.config.toml", home_path.display()),
+    ];
+
+    for path in search_paths.clone() {
+        if file_exists(&path) {
+            println!("loading config from {}", path);
+            return Ok(toml::from_str(&str_from_file_path(&path)?)?);
+        }
+    };
+
+    Err(TrailerError::generic(&format!("could not find a config file in the following locations: {:?}", search_paths)))
 }
