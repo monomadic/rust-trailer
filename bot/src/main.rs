@@ -10,17 +10,19 @@ extern crate binance;
 
 mod csv;
 
-mod bot;
-use bot::Bot;
+// mod bot;
+// use bot::Bot;
 
 mod error;
 
 fn main() {
-    let bot = Bot::new_with_config("./data/bots/new.toml");
-    let csv = csv::load_backtest_data("./data/backtests/new.csv").expect("csv failed to load");
+    let mut bot = trailer::socket::BinanceWS::new(move || { println!("hey!"); });
+    bot.run();
+    // let bot = Bot::new_with_config("./data/bots/new.toml");
+    // let csv = csv::load_backtest_data("./data/backtests/new.csv").expect("csv failed to load");
 
-    match bot.backtest(csv) {
-        Ok(_) => println!("done."),
-        Err(e) => println!("error: {:?}", e),
-    }
+    // match bot.backtest(csv) {
+    //     Ok(_) => println!("done."),
+    //     Err(e) => println!("error: {:?}", e),
+    // }
 }

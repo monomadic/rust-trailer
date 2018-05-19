@@ -13,6 +13,7 @@ extern crate serde;
 extern crate ratelimit;
 
 pub mod exchanges;
+pub mod socket;
 pub mod types;
 pub mod config;
 pub mod error;

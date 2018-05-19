@@ -1,8 +1,6 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-// Binance rate limits are: 1200 requests per minute; 10 orders per second; 100,000 orders per 24hrs. 
-
 use binance::api::*;
 use binance::account::*;
 use binance::market::*;
