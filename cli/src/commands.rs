@@ -123,7 +123,14 @@ pub fn run_docopt() -> Result<(), TrailerError> {
 
             print!("price ({}): ", price);
             let buy_price = ::input::get_f64(price)?;
-            if buy_price > price { println!("WARNING: your buy price is higher than the current price!"); }
+            if buy_price > price {
+                println!("WARNING: your buy price is higher than the current price!");
+                print!("\ncontinue with purchase? (y/N) ");
+                match ::input::get_confirmation()? {
+                    false => { return Err(TrailerError::generic("transaction aborted.")) },
+                    _ => (),
+                }
+            }
 
             print!("amount (10): ");
             let amount = ::input::get_f64(10.)?;
