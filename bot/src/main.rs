@@ -16,8 +16,13 @@ mod csv;
 mod error;
 
 fn main() {
-    let mut bot = trailer::socket::BinanceWS::new(move || { println!("hey!"); });
-    bot.run();
+    let bot = trailer::socket::BinanceWS::new(move |event| { println!("{:?}", event); });
+
+    match bot.run() {
+        Ok(_) => println!("done."),
+        Err(e) => println!("error: {:?}", e),
+    };
+
     // let bot = Bot::new_with_config("./data/bots/new.toml");
     // let csv = csv::load_backtest_data("./data/backtests/new.csv").expect("csv failed to load");
 

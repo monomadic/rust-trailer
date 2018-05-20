@@ -132,8 +132,9 @@ pub fn run_docopt() -> Result<(), TrailerError> {
                 }
             }
 
-            print!("amount (10): ");
-            let amount = ::input::get_f64(10.)?;
+            print!("amount in btc (0.1): ");
+            let btc_amount = ::input::get_f64(10.)?;
+            let amount = (btc_amount / buy_price).round();
 
             println!("\ncreating limit order of {} {} at {}. total price: {:.8}.", amount, symbol, buy_price, price * amount);
             print!("\ncontinue with purchase? (y/N) ");
