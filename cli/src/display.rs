@@ -2,7 +2,7 @@
 #![allow(unused_variables)]
 
 use colored::*;
-use trailer::types::*;
+use trailer::models::*;
 use trailer::error::*;
 
 pub fn error(error: TrailerError) {
@@ -14,11 +14,18 @@ pub fn title_bar(msg: &str) {
     println!("====================================================================");
 }
 
+pub fn colored_number(num: f64, formatted_string: String) -> ColoredString {
+    match num > 0.0 {
+        true => formatted_string.green(),
+        false => formatted_string.red(),
+    }
+}
+
 pub fn colored_balance(num: f64) -> String {
     if num > 0.0 {
-        format!("{}{}", num.to_string().green(), "".white())
+        format!("{:16.8}{ }", num.to_string().green(), "".white())
     } else {
-        format!("{}{}", num.to_string().red(), "".white())
+        format!("{:16.8}{ }", num.to_string().red(), "".white())
     }
 }
 
@@ -26,7 +33,7 @@ pub fn show_orders(orders: Vec<Order>) {
 //    println!("{}", "\nOpen Orders".to_string().yellow());
     for order in orders {
         println!("{:20}\t{:20}\t{:20.8}\t{:20.2}",
-            order.symbol, order.order_type, order.price, order.amount);
+            order.symbol, order.order_type, order.price, order.qty);
     }
 }
 
@@ -34,17 +41,25 @@ pub fn show_buckets(buckets: Vec<TradeBucket>) {
     println!("{}", "\nTrade Buckets".to_string().yellow());
     println!("{:<20} {:<20} {:<20} {:<20}", "Trades", "Locked Profit", "Buy Avg", "Sell Avg");
     for bucket in buckets {
-        println!("{:<20} {:<20.8} {:<20.8} {:<20.8}",
-            format!("{}", bucket.trades.len()).white(),
-            colored_balance(bucket.profit),
-            colored_balance(bucket.average_buy),
-            colored_balance(bucket.average_sell)
-        );
+        // println!("{:<20} {:<20.8} {:<20.8} {:<20.8}",
+        //     format!("{}", bucket.trades.len()).white(),
+        //     colored_balance(bucket.profit),
+        //     colored_balance(bucket.average_buy),
+        //     colored_balance(bucket.average_sell)
+        // );
     }
 }
 
 pub fn show_history(history: Vec<Order>) {
     println!("{:?}", history);
+}
+
+pub fn show_balances(balances: Vec<CoinAsset>) {
+    title_bar("Balances");
+    println!("{:<20}{:<20}{:<20}", "Symbol", "Amount", "Locked");
+    for coin in balances {
+        println!("{:<20}{:<20.2}{:<20.2}", coin.symbol.yellow(), coin.amount, coin.locked);
+    }
 }
 
 pub fn show_trades(trades: Vec<Trade>) {

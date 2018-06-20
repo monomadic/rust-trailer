@@ -11,9 +11,10 @@ extern crate serde_derive;
 extern crate serde_json;
 extern crate serde;
 extern crate ratelimit;
+extern crate itertools;
 
 pub mod exchanges;
 pub mod socket;
-pub mod types;
+pub mod models;
 pub mod config;
 pub mod error;

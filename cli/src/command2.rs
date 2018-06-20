@@ -137,7 +137,7 @@ pub fn run_docopt() -> Result<(), TrailerError> {
                     // let prices = client.prices()?;
 
                     // ::display::show_prices(prices.clone());
-                    // ::display::show_funds(::types::sort_funds(funds), prices);
+                    // ::display::show_funds(::models::sort_funds(funds), prices);
                 }
             }
             None => {
@@ -169,7 +169,7 @@ pub fn run_docopt() -> Result<(), TrailerError> {
                     let prices = bittrex.prices()?;
 
                     // ::display::show_prices(prices.clone());
-                    ::display::show_funds(::types::sort_funds(funds), prices);                 
+                    ::display::show_funds(::models::sort_funds(funds), prices);                 
                 }
 
                 if args.get_bool("orders") {
@@ -224,7 +224,7 @@ pub fn run_docopt() -> Result<(), TrailerError> {
                     let prices = binance.prices()?;
 
                     // ::display::show_prices(prices.clone());
-                    ::display::show_funds(::types::sort_funds(funds), prices);                 
+                    ::display::show_funds(::models::sort_funds(funds), prices);                 
                 }
 
                 if args.get_bool("orders") {
@@ -285,7 +285,7 @@ pub fn run_docopt() -> Result<(), TrailerError> {
 
                     for coin in coins {
                         let trades = binance.trades(coin);
-                        let buckets = ::types::trade_buckets(trades);
+                        let buckets = ::models::trade_buckets(trades);
                         ::display::show_buckets(buckets);
                     }
                 }

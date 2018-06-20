@@ -5,7 +5,7 @@ use bittrex::BittrexClient;
 
 use std::collections::HashMap;
 
-use ::types::*;
+use ::models::*;
 use ::error::*;
 use ::exchanges::*;
 
@@ -34,9 +34,8 @@ pub fn connect(api_key: &str, secret_key: &str) -> BittrexAPI {
 
 impl ExchangeAPI for BittrexAPI {
     
-    fn display(&self) -> String {
-        "Bittrex".to_string()
-    }
+    fn display(&self) -> String { "Bittrex".to_string() }
+    fn btc_price(&self) -> Result<f64, TrailerError> { Ok(self.price("USD-BTC")?) }
 
     fn funds(&self) -> Result<Funds, TrailerError> {
         let balances = self.balances()?;
@@ -104,8 +103,8 @@ impl ExchangeAPI for BittrexAPI {
             Order{
                 id:             order.order_uuid,
                 symbol:         order.exchange,
-                order_type:     order.order_type,
-                amount:         order.quantity as f64,
+                order_type:     TradeType::is_buy(order.order_type == "buy"),
+                qty:            order.quantity as f64,
                 price:          order.limit as f64,
             }
         }).collect())
@@ -117,15 +116,19 @@ impl ExchangeAPI for BittrexAPI {
                 Order{
                     id:             order.order_uuid,
                     symbol:         order.exchange,
-                    order_type:     order.order_type,
-                    amount:         order.quantity as f64,
+                    order_type:     TradeType::is_buy(order.order_type == "buy"),
+                    qty:            order.quantity as f64,
                     price:          order.limit as f64,
                 }
             }
         }).collect())
     }
 
-    fn past_orders_for(&self, symbol: &str) -> Result<Vec<Order>, TrailerError> {
+    fn past_trades_for(&self, symbol: &str) -> Result<Vec<Order>, TrailerError> {
+        Err(TrailerError::unsupported())
+    }
+
+    fn chart_data(&self, symbol: &str) -> Result<Vec<Candlestick>, TrailerError> {
         Err(TrailerError::unsupported())
     }
 }

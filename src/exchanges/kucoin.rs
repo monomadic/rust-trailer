@@ -3,7 +3,7 @@
 
 use kucoin;
 
-use ::types::*;
+use ::models::*;
 use ::error::*;
 use ::exchanges::{ ExchangeAPI, Exchange };
 
@@ -30,9 +30,8 @@ impl From<KucoinError> for TrailerError {
 }
 
 impl ExchangeAPI for KucoinAPI {
-    fn display(&self) -> String {
-        "Kucoin".into()
-    }
+    fn display(&self) -> String { "Kucoin".into() }
+    fn btc_price(&self) -> Result<f64, TrailerError> { Ok(self.price("BTCUSDT")?) }
 
     fn funds(&self) -> Result<Funds, TrailerError> {
         let balances = self.balances()?;
@@ -97,7 +96,11 @@ impl ExchangeAPI for KucoinAPI {
         Err(TrailerError::unsupported())
     }
 
-    fn past_orders_for(&self, symbol: &str) -> Result<Vec<Order>, TrailerError> {
+    fn past_trades_for(&self, symbol: &str) -> Result<Vec<Order>, TrailerError> {
+        Err(TrailerError::unsupported())
+    }
+
+    fn chart_data(&self, symbol: &str) -> Result<Vec<Candlestick>, TrailerError> {
         Err(TrailerError::unsupported())
     }
 }

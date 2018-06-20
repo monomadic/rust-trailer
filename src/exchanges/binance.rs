@@ -8,7 +8,7 @@ use binance::websockets::*;
 
 use std::collections::HashMap;
 
-use ::types::*;
+use ::models::*;
 use ::error::*;
 use ::exchanges::*;
 
@@ -38,9 +38,15 @@ impl MarketEventHandler for BinanceWebSocketHandler {
 
 impl ExchangeAPI for BinanceAPI {
     
-    fn display(&self) -> String {
-        "Binance".to_string()
-    }
+    fn display(&self) -> String { "Binance".to_string() }
+    fn btc_price(&self) -> Result<f64, TrailerError> { Ok(self.price("BTCUSDT")?) }
+
+    // basic (unenriched) list of
+    // fn balances(&self) -> Result<Balances, TrailerError> {
+    //     let balances = self.balances()?;
+
+    //     Ok(balances)
+    // }
 
     fn funds(&self) -> Result<Funds, TrailerError> {
         let balances = self.balances()?;
@@ -92,14 +98,14 @@ impl ExchangeAPI for BinanceAPI {
                 value_in_btc: None,
                 value_in_usd: None,
             }
-        }).collect())
+        }).filter(|b| b.amount > 0.0).collect())
     }
 
     fn price(&self, symbol: &str) -> Result<f64, TrailerError> {
         Ok(self.market.get_price(symbol)?)
     }
 
-    fn prices(&self) -> Result<::types::Prices, TrailerError> {
+    fn prices(&self) -> Result<::models::Prices, TrailerError> {
         let market_prices = self.market.get_all_prices()?;
         let mut p = HashMap::new();
 
@@ -133,8 +139,8 @@ impl ExchangeAPI for BinanceAPI {
             Order{
                 id:             order.order_id.to_string(),
                 symbol:         order.symbol,
-                order_type:     order.side,
-                amount:         order.executed_qty.parse::<f64>().unwrap(),
+                order_type:     TradeType::is_buy(order.side == "Buy"),
+                qty:            order.executed_qty.parse::<f64>().unwrap(),
                 price:          order.orig_qty.parse::<f64>().unwrap(),
             }
         }).collect())
@@ -144,7 +150,20 @@ impl ExchangeAPI for BinanceAPI {
         Err(TrailerError::unsupported())
     }
 
-    fn past_orders_for(&self, symbol: &str) -> Result<Vec<Order>, TrailerError> {
+    fn past_trades_for(&self, symbol: &str) -> Result<Vec<Order>, TrailerError> {
+        Ok(self.account.trade_history(symbol)?.into_iter().map(|order| {
+            Order{
+                id:             order.id.to_string(),
+                symbol:         symbol.to_string(),
+                order_type:     TradeType::is_buy(order.is_buyer),
+                qty:            order.qty,
+                price:          order.price,
+            }
+        }).collect())
+    }
+
+    fn chart_data(&self, symbol: &str) -> Result<Vec<Candlestick>, TrailerError> {
+        self.market.get_klines(symbol);
         Err(TrailerError::unsupported())
     }
 }

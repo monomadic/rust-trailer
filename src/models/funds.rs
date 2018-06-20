@@ -23,13 +23,6 @@ impl Default for CoinAsset {
     }
 }
 
-pub fn price_in_btc(symbol: String, prices: ::types::Prices) -> Option<f64> {
-    match prices.get(&format!("{}BTC", symbol)) {
-        Some(price) => Some(*price),
-        None => None
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct Funds {
     pub btc: Option<CoinAsset>,
@@ -58,11 +51,11 @@ impl Funds {
 }
 
 impl Funds {
-    pub fn total_btc(&self, btc_price: f64, prices: ::types::Prices) -> f64 {
-        let alts:f64 = self.alts.iter().map(|a| { a.amount * price_in_btc(a.clone().symbol, prices.clone()).unwrap_or(0.0) }).sum();
-        let fiat:f64 = self.fiat.iter().map(|a| a.amount / btc_price).sum();
-        self.btc.clone().unwrap_or_default().amount + alts + fiat
-    }
+    // pub fn total_btc(&self, btc_price: f64, prices: ::models::Prices) -> f64 {
+    //     let alts:f64 = self.alts.iter().map(|a| { a.amount * price_in_btc(a.clone().symbol, prices.clone()).unwrap_or(0.0) }).sum();
+    //     let fiat:f64 = self.fiat.iter().map(|a| a.amount / btc_price).sum();
+    //     self.btc.clone().unwrap_or_default().amount + alts + fiat
+    // }
 }
 
 pub fn sort_funds(funds: Vec<CoinAsset>) -> Funds {

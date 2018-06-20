@@ -1,5 +1,5 @@
 [workspace]
-members = ["cli", "bot"]
+members = ["cli", "bot", "repl"]
 
 [package]
 name = "trailer"
@@ -11,8 +11,8 @@ restson = "^0.1"
 serde = "^1.0"
 serde_derive = "^1.0"
 serde_json = "*"
-binance = { git = "https://github.com/robsaunders/binance-rs.git" }
- # binance = { path = "../_forks/binance-rs" }
+# binance = { git = "https://github.com/robsaunders/binance-rs.git" }
+binance = { path = "../_forks/binance-rs" }
 #binance = { git = "https://github.com/wisespace-io/binance-rs.git" }
 # kucoin = { git = "https://github.com/robsaunders/kucoin-rs.git" }
 kucoin = { path = "../kucoin-rs" }
@@ -23,6 +23,7 @@ toml = "*"
 reqwest = "0.8.4"
 # bot
 ratelimit = "*"
+itertools = "0.7.3"
 
 [lib]
 name = "trailer"

@@ -11,12 +11,15 @@ const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 const USAGE: &'static str = "
 Usage:
     trade [<exchange>] funds
+    trade [<exchange>] balances
     trade [<exchange>] orders
-    trade <exchange> past-orders
+    trade <exchange> past-orders [<symbol>]
     trade <exchange> price <symbol>
     trade <exchange> (buy|sell) <symbol> <amount> <price>
     trade <exchange> stop (loss|gain) <symbol> <amount> <price>
     trade <exchange> b <symbol>
+    trade <exchange> ev <symbol>
+    trade <exchange> rsi <symbol>
 
 Exchange:
     binance
@@ -29,6 +32,7 @@ struct Args {
     arg_exchange: Option<Exchange>,
 
     cmd_funds: bool,
+    cmd_balances: bool,
     cmd_price: bool,
     cmd_buy: bool,
     cmd_sell: bool,
@@ -38,6 +42,8 @@ struct Args {
     cmd_orders: bool,
     cmd_past_orders: bool,
     cmd_b: bool,
+    cmd_ev: bool,
+    cmd_rsi: bool,
 
     arg_symbol: Option<String>,
     arg_amount: Option<f64>,
@@ -78,15 +84,6 @@ pub fn run_docopt() -> Result<(), TrailerError> {
     }
 
     for client in clients {
-        if args.cmd_orders {
-            println!("getting open orders...");
-            ::display::show_orders(client.open_orders()?);
-        }
-
-        if args.cmd_past_orders {
-            println!("getting past orders...");
-            ::display::show_orders(client.past_orders()?);
-        }
 
         if args.cmd_funds {
             println!("getting funds...");
@@ -94,6 +91,25 @@ pub fn run_docopt() -> Result<(), TrailerError> {
 
             ::display::title_bar(&format!("\n{} Balance", client.display()));
             ::display::show_funds(funds);
+        }
+
+        if args.cmd_balances {
+            println!("getting balances...");
+            ::display::show_balances(client.balances()?);
+        }
+
+        if args.cmd_orders {
+            println!("getting open orders...");
+            ::display::show_orders(client.open_orders()?);
+        }
+
+        if args.cmd_past_orders {
+            println!("getting past orders...");
+            if let Some(symbol) = args.arg_symbol.clone() {
+                ::display::show_orders(client.past_trades_for(&symbol)?);
+            } else {
+                ::display::show_orders(client.past_orders()?);
+            }
         }
 
         if args.cmd_price {
@@ -139,12 +155,76 @@ pub fn run_docopt() -> Result<(), TrailerError> {
             println!("\ncreating limit order of {} {} at {}. total price: {:.8}.", amount, symbol, buy_price, price * amount);
             print!("\ncontinue with purchase? (y/N) ");
             match ::input::get_confirmation()? {
-                true => println!("\npurchasing..."),
+                true => {
+                    println!("\npurchasing...");
+                    let _ = client.limit_buy(&symbol, amount, buy_price);
+                },
                 false => println!("\nno purchase made."),
             }
 
         }
+
+        if args.cmd_ev {
+            let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
+            evaluate_trades(&client, symbol)?;
+        }
+
+        if args.cmd_rsi {
+            println!("fetching rsi...");
+            let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
+            client.chart_data(&symbol)?;
+        }
+
     };
+
+    Ok(())
+}
+
+pub fn evaluate_trades(client: &Box<ExchangeAPI>, symbol: String) -> Result<(), TrailerError> {
+    use colored::*;
+    use trailer::models::{ group_orders, compact_orders, TradeType };
+
+    println!("evaluating trades...");
+
+    let orders = client.past_trades_for(&symbol)?;
+    let price = client.price(&symbol)?;
+    let btc_price = client.btc_price()?;
+
+    ::display::title_bar(&format!("{}", symbol.yellow()));
+
+    println!("{:8}{:<8}{:<16}{:<16}{:<16}{:<16}{:<16}{:<16}{:<8}",
+        "type", "btc", "qty", "price", "current_price", "cost_usd", "uprofit", "uprofit usd", "% change");
+
+    for order in group_orders(compact_orders(orders.clone())) {
+        let cost_btc = order.qty * order.price;
+        let cost_usd = (price * order.qty) * btc_price;
+        let percent_change = 100. - 100. / order.price * price;
+
+        let (profit, buy_type) = match order.order_type {
+            TradeType::Buy => {(
+                ((order.qty * price) - cost_btc),
+                ("BUY".green())
+            )},
+            TradeType::Sell => {(
+                (cost_btc - (order.qty * price)),
+                ("SELL".red())
+            )},
+        };
+
+        let profit_usd = profit * btc_price;
+
+        use ::display::colored_number;
+        println!("{buy_type:<8}{cost_btc:<8}{order_amount:<16}{order_price:<16}{price:<16}{cost_usd:<16}{profit:<16}{profit_usd:<16}{percent_change:<8}",
+            buy_type        = buy_type,
+            cost_btc        = format!("{:.2}", cost_btc),
+            order_amount    = format!("{:.2}", order.qty),
+            order_price     = format!("{:.8}", order.price),
+            price           = format!("{:.8}", price),
+            cost_usd        = format!("${:.2}", cost_usd),
+            profit          = colored_number(profit, format!("{:>11.8}", profit)),
+            profit_usd      = colored_number(profit_usd, format!("${:.2}", profit_usd)),
+            percent_change  = format!("{:.2}%", percent_change));
+    }
 
     Ok(())
 }

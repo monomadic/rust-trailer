@@ -54,7 +54,7 @@ pub fn run_docopt() -> Result<(), TrailerError> {
     //     println!("getting prices...");
     //     let prices = client.prices()?;
 
-    //     ::display::show_funds(trailer::types::sort_funds(funds), prices);
+    //     ::display::show_funds(trailer::models::sort_funds(funds), prices);
     // }
 
     // if args.cmd_price {

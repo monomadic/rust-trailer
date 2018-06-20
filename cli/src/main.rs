@@ -1,6 +1,5 @@
 extern crate colored;
 extern crate docopt;
-extern crate toml;
 
 #[macro_use]
 extern crate serde_derive;
