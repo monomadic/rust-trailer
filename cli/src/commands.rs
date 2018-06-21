@@ -172,6 +172,8 @@ pub fn run_docopt() -> Result<String, TrailerError> {
         }
 
         if args.cmd_ev {
+            if args.flag_verbose { println!("evaluating trades...") };
+
             let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
             let orders = client.past_trades_for(&symbol)?;
             let price = client.price(&symbol)?;
@@ -197,14 +199,12 @@ pub fn run_docopt() -> Result<String, TrailerError> {
 
     };
 
-    Ok("done.".to_string())
+    Ok(if args.flag_verbose { "done.".to_string() } else { "".to_string() })
 }
 
 pub fn evaluate_trades(symbol: String, orders: Vec<trailer::models::Order>, price: f64, btc_price: f64) -> Result<(), TrailerError> {
     use colored::*;
     use trailer::models::{ TradeType };
-
-    println!("evaluating trades...");
 
     ::display::title_bar(&format!("{}", symbol.yellow()));
 
