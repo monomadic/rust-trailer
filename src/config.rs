@@ -50,7 +50,7 @@ impl From<::toml::de::Error> for TrailerError {
     }
 }
 
-pub fn read() -> Result<Config, TrailerError> {
+pub fn read(verbose: bool) -> Result<Config, TrailerError> {
     pub fn file_exists(path: &str) -> bool {
         use std::fs;
 
@@ -82,7 +82,7 @@ pub fn read() -> Result<Config, TrailerError> {
 
     for path in search_paths.clone() {
         if file_exists(&path) {
-            println!("loading config from {}", path);
+            if verbose { println!("loading config from {}", path) };
             return Ok(toml::from_str(&str_from_file_path(&path)?)?);
         }
     };

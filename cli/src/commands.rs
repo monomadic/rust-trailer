@@ -18,8 +18,11 @@ Usage:
     trade <exchange> (buy|sell) <symbol> <amount> <price>
     trade <exchange> stop (loss|gain) <symbol> <amount> <price>
     trade <exchange> b <symbol>
-    trade <exchange> ev <symbol> [--group]
+    trade <exchange> ev <symbol> [--group] [--last]
     trade <exchange> rsi <symbol>
+
+Options:
+    --verbose   show detailed output
 
 Exchange:
     binance
@@ -50,15 +53,17 @@ struct Args {
     arg_price: Option<f64>,
 
     flag_group: bool,
+    flag_last: bool,
+    flag_verbose: bool,
 }
 
-pub fn run_docopt() -> Result<(), TrailerError> {
+pub fn run_docopt() -> Result<String, TrailerError> {
     let args:Args = Docopt::new(USAGE)
         .map(|d| d.version(Some(VERSION.into())))
         .and_then(|d| d.deserialize())
         .unwrap_or_else(|e| e.exit());
 
-    let conf = trailer::config::read()?;
+    let conf = trailer::config::read(args.flag_verbose)?;
     let mut clients = Vec::new();
 
     fn get_client(exchange: Exchange, keys: trailer::config::APIConfig) -> Box<ExchangeAPI> {
@@ -88,7 +93,7 @@ pub fn run_docopt() -> Result<(), TrailerError> {
     for client in clients {
 
         if args.cmd_funds {
-            println!("getting funds...");
+            if args.flag_verbose { println!("getting funds...") };
             let funds = client.funds()?;
 
             ::display::title_bar(&format!("\n{} Balance", client.display()));
@@ -96,7 +101,7 @@ pub fn run_docopt() -> Result<(), TrailerError> {
         }
 
         if args.cmd_balances {
-            println!("getting balances...");
+            if args.flag_verbose { println!("getting balances...") };
             ::display::show_balances(client.balances()?);
         }
 
@@ -106,7 +111,7 @@ pub fn run_docopt() -> Result<(), TrailerError> {
         }
 
         if args.cmd_past_orders {
-            println!("getting past orders...");
+            if args.flag_verbose { println!("getting past orders...") };
             if let Some(symbol) = args.arg_symbol.clone() {
                 ::display::show_orders(client.past_trades_for(&symbol)?);
             } else {
@@ -115,7 +120,7 @@ pub fn run_docopt() -> Result<(), TrailerError> {
         }
 
         if args.cmd_price {
-            println!("getting price...");
+            if args.flag_verbose { println!("getting price...") };
             let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
             let price = client.price(&symbol)?;
 
@@ -172,9 +177,13 @@ pub fn run_docopt() -> Result<(), TrailerError> {
             let price = client.price(&symbol)?;
             let btc_price = client.btc_price()?;
 
-            let processed_orders = match args.flag_group {
+            let mut processed_orders = match args.flag_group {
                 true => trailer::models::average_orders(orders),
                 false => trailer::models::compact_orders(orders),
+            };
+
+            if args.flag_last {
+                processed_orders = processed_orders.into_iter().take(2).collect();
             };
 
             evaluate_trades(symbol, processed_orders, price, btc_price)?;
@@ -188,7 +197,7 @@ pub fn run_docopt() -> Result<(), TrailerError> {
 
     };
 
-    Ok(())
+    Ok("done.".to_string())
 }
 
 pub fn evaluate_trades(symbol: String, orders: Vec<trailer::models::Order>, price: f64, btc_price: f64) -> Result<(), TrailerError> {

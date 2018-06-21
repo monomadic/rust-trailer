@@ -45,7 +45,7 @@ pub fn run_docopt() -> Result<(), TrailerError> {
         .parse())
         .unwrap_or_else(|e| e.exit());
 
-    let conf = ::config::read()?;
+    let conf = ::config::read(args.flag_verbose)?;
 
     if args.get_bool("bin") || args.get_bool("bit") {
 

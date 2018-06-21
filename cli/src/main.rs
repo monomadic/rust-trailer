@@ -13,7 +13,7 @@ mod input;
 
 fn main() {
     match ::commands::run_docopt() {
-        Ok(_) => println!("done."),
+        Ok(m) => println!("{}", m),
         Err(e) => display::error(e),
     }
 }
