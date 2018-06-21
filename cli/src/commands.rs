@@ -18,7 +18,7 @@ Usage:
     trade <exchange> (buy|sell) <symbol> <amount> <price>
     trade <exchange> stop (loss|gain) <symbol> <amount> <price>
     trade <exchange> b <symbol>
-    trade <exchange> ev <symbol>
+    trade <exchange> ev <symbol> [--group]
     trade <exchange> rsi <symbol>
 
 Exchange:
@@ -48,6 +48,8 @@ struct Args {
     arg_symbol: Option<String>,
     arg_amount: Option<f64>,
     arg_price: Option<f64>,
+
+    flag_group: bool,
 }
 
 pub fn run_docopt() -> Result<(), TrailerError> {
@@ -166,7 +168,16 @@ pub fn run_docopt() -> Result<(), TrailerError> {
 
         if args.cmd_ev {
             let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
-            evaluate_trades(&client, symbol)?;
+            let orders = client.past_trades_for(&symbol)?;
+            let price = client.price(&symbol)?;
+            let btc_price = client.btc_price()?;
+
+            let processed_orders = match args.flag_group {
+                true => trailer::models::average_orders(orders),
+                false => trailer::models::compact_orders(orders),
+            };
+
+            evaluate_trades(symbol, processed_orders, price, btc_price)?;
         }
 
         if args.cmd_rsi {
@@ -180,22 +191,18 @@ pub fn run_docopt() -> Result<(), TrailerError> {
     Ok(())
 }
 
-pub fn evaluate_trades(client: &Box<ExchangeAPI>, symbol: String) -> Result<(), TrailerError> {
+pub fn evaluate_trades(symbol: String, orders: Vec<trailer::models::Order>, price: f64, btc_price: f64) -> Result<(), TrailerError> {
     use colored::*;
-    use trailer::models::{ group_orders, compact_orders, TradeType };
+    use trailer::models::{ TradeType };
 
     println!("evaluating trades...");
-
-    let orders = client.past_trades_for(&symbol)?;
-    let price = client.price(&symbol)?;
-    let btc_price = client.btc_price()?;
 
     ::display::title_bar(&format!("{}", symbol.yellow()));
 
     println!("{:8}{:<8}{:<16}{:<16}{:<16}{:<16}{:<16}{:<16}{:<8}",
         "type", "btc", "qty", "price", "current_price", "cost_usd", "uprofit", "uprofit usd", "% change");
 
-    for order in group_orders(compact_orders(orders.clone())) {
+    for order in orders {
         let cost_btc = order.qty * order.price;
         let cost_usd = (price * order.qty) * btc_price;
         let percent_change = 100. - 100. / order.price * price;

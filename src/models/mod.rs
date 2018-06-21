@@ -18,7 +18,7 @@ pub type Price = (String, f64);
 pub type Prices = HashMap<String, f64>;
 pub type Balance = (String, f64, f64);
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TradeType {
     Buy,
     Sell,
@@ -40,10 +40,12 @@ impl TradeType {
     }
 }
 
-impl PartialEq for TradeType {
-    fn eq(&self, other: &TradeType) -> bool { self == other }
-}
-impl Eq for TradeType {}
+// impl PartialEq for TradeType {
+//     fn eq(&self, other: &TradeType) -> bool {
+//         self == other
+//     }
+// }
+// impl Eq for TradeType {}
 
 impl ::std::fmt::Display for TradeType {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
