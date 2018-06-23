@@ -162,9 +162,18 @@ impl ExchangeAPI for BinanceAPI {
         }).collect())
     }
 
-    fn chart_data(&self, symbol: &str) -> Result<Vec<Candlestick>, TrailerError> {
-        self.market.get_klines(symbol);
-        Err(TrailerError::unsupported())
+    fn chart_data(&self, symbol: &str, interval: &str) -> Result<Vec<Candlestick>, TrailerError> {
+        Ok(self.market.get_klines(symbol, interval)?.iter().map(|cs|
+            Candlestick {
+                open_time:          cs.open_time as i32,
+                open_price:         cs.open_price,
+                close_price:        cs.close_price,
+                high_price:         cs.high_price,
+                low_price:          cs.low_price,
+                volume:             cs.volume,
+                number_of_trades:   cs.trades as u64,
+            }
+        ).collect())
     }
 }
 

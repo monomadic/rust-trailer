@@ -100,7 +100,7 @@ impl ExchangeAPI for KucoinAPI {
         Err(TrailerError::unsupported())
     }
 
-    fn chart_data(&self, symbol: &str) -> Result<Vec<Candlestick>, TrailerError> {
+    fn chart_data(&self, symbol: &str, interval: &str) -> Result<Vec<Candlestick>, TrailerError> {
         Err(TrailerError::unsupported())
     }
 }

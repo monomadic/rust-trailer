@@ -10,7 +10,7 @@ use docopt::Docopt;
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 const USAGE: &'static str = "
 Usage:
-    trade [<exchange>] funds
+    trade [<exchange>] funds [--sort-by-value]
     trade [<exchange>] balances
     trade [<exchange>] orders
     trade <exchange> past-orders [<symbol>]
@@ -55,6 +55,7 @@ struct Args {
     flag_group: bool,
     flag_last: bool,
     flag_verbose: bool,
+    flag_sort_by_value: bool,
 }
 
 pub fn run_docopt() -> Result<String, TrailerError> {
@@ -94,7 +95,13 @@ pub fn run_docopt() -> Result<String, TrailerError> {
 
         if args.cmd_funds {
             if args.flag_verbose { println!("getting funds...") };
-            let funds = client.funds()?;
+            let mut funds = client.funds()?;
+
+            if args.flag_sort_by_value {
+                funds.alts.sort_by(|a, b|
+                    (b.value_in_btc.unwrap_or(0.0) * b.amount)
+                        .partial_cmp(&(&a.value_in_btc.unwrap_or(0.0) * &a.amount)).unwrap())
+            }
 
             ::display::title_bar(&format!("\n{} Balance", client.display()));
             ::display::show_funds(funds);
@@ -185,21 +192,32 @@ pub fn run_docopt() -> Result<String, TrailerError> {
             };
 
             if args.flag_last {
-                processed_orders = processed_orders.into_iter().take(2).collect();
+                use trailer::models::Order;
+                processed_orders = processed_orders.into_iter().rev().take(2).collect::<Vec<Order>>().into_iter().rev().collect();
             };
 
             evaluate_trades(symbol, processed_orders, price, btc_price)?;
         }
 
         if args.cmd_rsi {
-            println!("fetching rsi...");
+            use colored::*;
+
+            if args.flag_verbose { println!("fetching rsi...") };
             let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
-            client.chart_data(&symbol)?;
+            let candlesticks = client.chart_data(&symbol, "1h")?;
+            println!("{:8}{:8.0}", symbol.yellow(), rsi(candlesticks).last().unwrap());
         }
 
     };
 
     Ok(if args.flag_verbose { "done.".to_string() } else { "".to_string() })
+}
+
+pub fn rsi(prices: Vec<trailer::models::Candlestick>) -> Vec<f64> {
+    use ta::indicators::RelativeStrengthIndex;
+    use ta::Next;
+    let mut rsi = RelativeStrengthIndex::new(14).unwrap();
+    prices.iter().map(|price| rsi.next(price.close_price)).collect()
 }
 
 pub fn evaluate_trades(symbol: String, orders: Vec<trailer::models::Order>, price: f64, btc_price: f64) -> Result<(), TrailerError> {

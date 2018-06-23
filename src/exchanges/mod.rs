@@ -16,7 +16,7 @@ pub trait ExchangeAPI {
     fn open_orders(&self)           -> Result<Vec<Order>, TrailerError>;
     fn past_orders(&self)           -> Result<Vec<Order>, TrailerError>;
     fn past_trades_for(&self, symbol: &str) -> Result<Vec<Order>, TrailerError>;
-    fn chart_data(&self, symbol: &str) -> Result<Vec<Candlestick>, TrailerError>;
+    fn chart_data(&self, symbol: &str, interval: &str) -> Result<Vec<Candlestick>, TrailerError>;
     fn btc_price(&self)             -> Result<f64, TrailerError>;
 }
 
