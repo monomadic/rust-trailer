@@ -41,10 +41,13 @@ impl ExchangeAPI for BittrexAPI {
         let balances = self.balances()?;
         let prices = self.prices()?;
 
+        let alts_all:Vec<CoinAsset> = balances.clone().into_iter().filter(|c| c.symbol != "USDT" && c.symbol != "BTC").collect();
+        let alts:Vec<CoinAsset> = alts_all.into_iter().filter(|c| c.amount > 0.9).collect();
+
         Ok(Funds {
             btc:    balances.clone().into_iter().find(|c| c.symbol == "BTC"),
             fiat:   balances.clone().into_iter().filter(|c| c.symbol == "USDT").collect(),
-            alts:   balances.into_iter().filter(|c| c.symbol != "USDT" && c.symbol != "BTC").collect(),
+            alts:   alts,
             total_value_in_usd: 33.0,
             total_value_in_btc: 44.0,
         })

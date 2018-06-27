@@ -21,6 +21,12 @@ pub fn colored_number(num: f64, formatted_string: String) -> ColoredString {
     }
 }
 
+pub fn colored_rsi(num: f64, formatted_string: String) -> ColoredString {
+    if num < 30. { return formatted_string.red() }
+    if num > 70. { return formatted_string.green() }
+    formatted_string.white()
+}
+
 pub fn colored_balance(num: f64) -> String {
     if num > 0.0 {
         format!("{:16.8}{ }", num.to_string().green(), "".white())

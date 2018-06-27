@@ -37,9 +37,8 @@ impl MarketEventHandler for BinanceWebSocketHandler {
 }
 
 impl ExchangeAPI for BinanceAPI {
-    
     fn display(&self) -> String { "Binance".to_string() }
-    fn btc_price(&self) -> Result<f64, TrailerError> { Ok(self.price("BTCUSDT")?) }
+    fn btc_price(&self) -> Result<f64, TrailerError> { Ok(self.price("BTCUSDT").or(Err(TrailerError::generic("could not find the BTCUSDT symbol.")))?) }
 
     // basic (unenriched) list of
     // fn balances(&self) -> Result<Balances, TrailerError> {
@@ -57,7 +56,7 @@ impl ExchangeAPI for BinanceAPI {
         let alts_all:Vec<CoinAsset> = balances.clone().into_iter().filter(|c| c.symbol != "USDT" && c.symbol != "BTC").collect();
         let mut alts:Vec<CoinAsset> = alts_all.into_iter().filter(|c| c.amount > 0.9).collect();
 
-        let &btc_price = prices.get("BTCUSDT").expect("BTCUSDT does not exist in binance price list");
+        let btc_price = self.btc_price()?;
 
         // assign a price to btc if it exists.
         if let Some(ref mut b) = btc {

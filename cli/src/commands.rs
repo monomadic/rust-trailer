@@ -14,6 +14,7 @@ Usage:
     trade [<exchange>] balances
     trade [<exchange>] orders
     trade <exchange> past-orders [<symbol>]
+    trade <exchange> prices
     trade <exchange> price <symbol>
     trade <exchange> (buy|sell) <symbol> <amount> <price>
     trade <exchange> stop (loss|gain) <symbol> <amount> <price>
@@ -37,6 +38,7 @@ struct Args {
     cmd_funds: bool,
     cmd_balances: bool,
     cmd_price: bool,
+    cmd_prices: bool,
     cmd_buy: bool,
     cmd_sell: bool,
     cmd_stop: bool,
@@ -126,8 +128,17 @@ pub fn run_docopt() -> Result<String, TrailerError> {
             }
         }
 
+        if args.cmd_prices {
+            if args.flag_verbose { println!("getting prices...") };
+            let prices = client.prices()?;
+
+            println!("{:?}", prices);
+
+            for price in prices { ::display::show_price(price); }
+        }
+
         if args.cmd_price {
-            if args.flag_verbose { println!("getting price...") };
+            if args.flag_verbose { println!("getting prices...") };
             let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
             let price = client.price(&symbol)?;
 
@@ -204,8 +215,16 @@ pub fn run_docopt() -> Result<String, TrailerError> {
 
             if args.flag_verbose { println!("fetching rsi...") };
             let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
-            let candlesticks = client.chart_data(&symbol, "1h")?;
-            println!("{:8}{:8.0}", symbol.yellow(), rsi(candlesticks).last().unwrap());
+
+            let rsi_15m  = rsi(client.chart_data(&symbol, "15m")?);
+            let rsi_1h   = rsi(client.chart_data(&symbol, "1h")?);
+            let rsi_1d   = rsi(client.chart_data(&symbol, "1d")?);
+
+            println!("{symbol:12}15m: {rsi_15m:<8}1h: {rsi_1h:<8}1d: {rsi_1d:<8}",
+                symbol      = symbol.yellow(),
+                rsi_15m     = ::display::colored_rsi(*rsi_15m.last().unwrap(), format!("{:.0}", rsi_15m.last().unwrap())),
+                rsi_1h      = ::display::colored_rsi(*rsi_1h.last().unwrap(), format!("{:.0}", rsi_1h.last().unwrap())),
+                rsi_1d      = ::display::colored_rsi(*rsi_1d.last().unwrap(), format!("{:.0}", rsi_1d.last().unwrap())));
         }
 
     };
@@ -227,7 +246,7 @@ pub fn evaluate_trades(symbol: String, orders: Vec<trailer::models::Order>, pric
     ::display::title_bar(&format!("{}", symbol.yellow()));
 
     println!("{:8}{:<8}{:<16}{:<16}{:<16}{:<16}{:<16}{:<16}{:<8}",
-        "type", "btc", "qty", "price", "current_price", "cost_usd", "uprofit", "uprofit usd", "% change");
+        "type", "btc", "qty", "cost", "price_btc", "cost_usd", "uprofit", "uprofit usd", "% change");
 
     for order in orders {
         let cost_btc = order.qty * order.price;
@@ -255,9 +274,9 @@ pub fn evaluate_trades(symbol: String, orders: Vec<trailer::models::Order>, pric
             order_price     = format!("{:.8}", order.price),
             price           = format!("{:.8}", price),
             cost_usd        = format!("${:.2}", cost_usd),
-            profit          = colored_number(profit, format!("{:>11.8}", profit)),
-            profit_usd      = colored_number(profit_usd, format!("${:.2}", profit_usd)),
-            percent_change  = format!("{:.2}%", percent_change));
+            profit          = colored_number(profit,            format!("{:>11.8}", profit)),
+            profit_usd      = colored_number(profit_usd,        format!("${:.2}", profit_usd)),
+            percent_change  = colored_number(percent_change,    format!("{:.2}%", percent_change)));
     }
 
     Ok(())

@@ -1,5 +1,5 @@
 [workspace]
-members = ["cli", "bot", "repl"]
+members = ["cli", "bot", "repl", "tgbot"]
 
 [package]
 name = "trailer"

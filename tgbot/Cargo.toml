@@ -1,0 +1,14 @@
+[package]
+name = "telegram-bot"
+version = "0.1.0"
+authors = ["Rob Saunders <rob@wearebrandnew.com>"]
+
+[dependencies]
+telegram-bot = "0.5"
+rustc-serialize = "0.3"
+chrono = "*"
+fnv = "1.0"
+glob = "0.2"
+lazy_static = "0.2"
+rand = "0.3"
+nom = "3.0"

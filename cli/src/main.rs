@@ -14,7 +14,7 @@ mod input;
 
 fn main() {
     match ::commands::run_docopt() {
-        Ok(m) => println!("{}", m),
+        Ok(m) => print!("{}", m),
         Err(e) => display::error(e),
     }
 }
