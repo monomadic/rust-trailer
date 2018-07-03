@@ -19,8 +19,11 @@ Usage:
     trade <exchange> (buy|sell) <symbol> <amount> <price>
     trade <exchange> stop (loss|gain) <symbol> <amount> <price>
     trade <exchange> b <symbol>
-    trade <exchange> ev <symbol> [--group] [--last]
+    trade <exchange> ev <symbol> [--group] [--last] [--hide-losers]
     trade <exchange> rsi <symbol>
+    trade <exchange> pl <symbol>
+    trade <exchange> pos <pairs>...
+     <symbol>
 
 Options:
     --verbose   show detailed output
@@ -49,15 +52,19 @@ struct Args {
     cmd_b: bool,
     cmd_ev: bool,
     cmd_rsi: bool,
+    cmd_pl: bool,
+    cmd_pos: bool,
 
     arg_symbol: Option<String>,
     arg_amount: Option<f64>,
     arg_price: Option<f64>,
+    arg_pairs: Option<Vec<String>>,
 
     flag_group: bool,
     flag_last: bool,
     flag_verbose: bool,
     flag_sort_by_value: bool,
+    flag_hide_losers: bool,
 }
 
 pub fn run_docopt() -> Result<String, TrailerError> {
@@ -197,17 +204,19 @@ pub fn run_docopt() -> Result<String, TrailerError> {
             let price = client.price(&symbol)?;
             let btc_price = client.btc_price()?;
 
+            // --group
             let mut processed_orders = match args.flag_group {
                 true => trailer::models::average_orders(orders),
                 false => trailer::models::compact_orders(orders),
             };
 
+            // --last
             if args.flag_last {
                 use trailer::models::Order;
                 processed_orders = processed_orders.into_iter().rev().take(2).collect::<Vec<Order>>().into_iter().rev().collect();
             };
 
-            evaluate_trades(symbol, processed_orders, price, btc_price)?;
+            evaluate_trades(symbol, processed_orders, price, btc_price, args.flag_hide_losers)?;
         }
 
         if args.cmd_rsi {
@@ -227,6 +236,36 @@ pub fn run_docopt() -> Result<String, TrailerError> {
                 rsi_1d      = ::display::colored_rsi(*rsi_1d.last().unwrap(), format!("{:.0}", rsi_1d.last().unwrap())));
         }
 
+        if args.cmd_pl {
+            let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
+            let orders = trailer::models::average_orders(client.past_trades_for(&format!("{}BTC", symbol))?);
+            let price = client.price(&format!("{}BTC", symbol))?;
+            let btc_price = client.btc_price()?;
+            let symbol_qty = client.funds()?.alts.iter().find(|c|c.symbol == symbol).ok_or(TrailerError::generic(&format!("symbol not in funds: {:?}", client.funds())))?.amount;
+
+            trade_position(symbol, symbol_qty, orders, price, btc_price)?;
+        }
+
+        if args.cmd_pos {
+            let pairs = args.arg_pairs.clone().ok_or(TrailerError::missing_argument("pairs"))?;
+
+            use colored::*;
+
+            if args.flag_verbose { println!("fetching rsi...") };
+
+            for pair in pairs {
+                let rsi_15m  = rsi(client.chart_data(&pair, "15m")?);
+                let rsi_1h   = rsi(client.chart_data(&pair, "1h")?);
+                let rsi_1d   = rsi(client.chart_data(&pair, "1d")?);
+
+                println!("{pair:12}15m: {rsi_15m:<8}1h: {rsi_1h:<8}1d: {rsi_1d:<8}",
+                    pair        = pair.yellow(),
+                    rsi_15m     = ::display::colored_rsi(*rsi_15m.last().unwrap(), format!("{:.0}", rsi_15m.last().unwrap())),
+                    rsi_1h      = ::display::colored_rsi(*rsi_1h.last().unwrap(), format!("{:.0}", rsi_1h.last().unwrap())),
+                    rsi_1d      = ::display::colored_rsi(*rsi_1d.last().unwrap(), format!("{:.0}", rsi_1d.last().unwrap())));
+            }
+        }
+
     };
 
     Ok(if args.flag_verbose { "done.".to_string() } else { "".to_string() })
@@ -239,14 +278,113 @@ pub fn rsi(prices: Vec<trailer::models::Candlestick>) -> Vec<f64> {
     prices.iter().map(|price| rsi.next(price.close_price)).collect()
 }
 
-pub fn evaluate_trades(symbol: String, orders: Vec<trailer::models::Order>, price: f64, btc_price: f64) -> Result<(), TrailerError> {
+pub fn trade_position(symbol: String, symbol_qty: f64, orders: Vec<trailer::models::Order>, price: f64, btc_price: f64) -> Result<(), TrailerError> {
+    use colored::*;
+    let mut symbol_balance = symbol_qty;
+    let mut btc_balance = 0.0;
+
+    // enum TradePosition {
+    //     Entry(EntryPosition),
+    //     Exit(ExitPosition),
+    // };
+
+    // struct EntryPosition {
+    //     cost: f64,
+    // };
+
+    // struct ExitPosition {
+    //     profit: f64,
+    // }
+
+    // // we work backwards from the current balance as there could be missing figures.
+    // for order in orders.iter().rev() {
+    //     println!("position: bal: {}", symbol_balance);
+    //     match order.order_type {
+    //         trailer::models::TradeType::Buy => {
+    //             // println!("{} +{} {} for {:.2} btc. balance: ( btc: {}, sym: {} )", "BUY ".green(), order.qty, order.symbol, order.qty * order.price, btc_balance, symbol_balance);
+    //             println!("{} {}, cost: {}", "BUY ".green(), order.qty, order.qty * order.price);
+    //             btc_balance -= order.qty * order.price;
+    //             symbol_balance -= order.qty;
+    //         },
+    //         trailer::models::TradeType::Sell => {
+    //             // println!("{} -{} {} for {:.2} btc. balance: ( btc: {}, sym: {} )", "SELL".red(), order.qty, order.symbol, order.qty * order.price, btc_balance, symbol_balance);
+    //             btc_balance += order.qty * order.price;
+    //             symbol_balance += order.qty;
+    //             println!("{} {}, profit: {}", "SELL".red(), order.qty, order.qty * order.price);
+    //         },
+    //     }
+    // }
+
+    let mut last_price = orders.first().unwrap().price;
+
+    println!("{:8}{:<12}{:<16}{:<8}{:<16}{:<16}", "type", "qty", "price", "btc_price", "profit", "profit_usd");
+
+    for order in orders {
+        let cost_btc = order.qty * order.price;
+
+        match order.order_type {
+            trailer::models::TradeType::Buy => {
+                let profit = (last_price - order.price) * order.qty;
+                println!("{:8}{:<12.2}{:<16.8}{:<8.2}{:<16.4}{:<16.2}",
+                    "BUY".green(), order.qty, order.price, order.qty * order.price, profit, profit * btc_price);
+            },
+            trailer::models::TradeType::Sell => {
+                let profit = (order.price - last_price) * order.qty;
+                println!("{:8}{:<12.2}{:<16.8}{:<8.2}{:<16.4}{:<16.2}",
+                    "SELL".red(), order.qty, order.price, order.qty * order.price, profit, profit * btc_price);
+            }
+        }
+        last_price = order.price;
+    }
+
+    println!("assumed initial bal: {}", symbol_balance);
+
+    // println!("\nbalance:\n\tCOIN {}\n\tBTC  {}", symbol_balance, btc_balance);
+
+    Ok(())
+}
+
+pub fn evaluate_trades(symbol: String, orders: Vec<trailer::models::Order>, price: f64, btc_price: f64, hide_losers: bool) -> Result<(), TrailerError> {
+    use colored::*;
+    use ::display::colored_number;
+
+    let positions = trailer::models::Position::calculate(orders, &symbol, price, btc_price);
+
+    ::display::title_bar(&format!("{}", symbol.yellow()));
+
+    println!("{:12}{:<12}{:<16}{:<16}{:<16}{:<16}{:<16}{:<16}{:<8}",
+        "trade_type", "cost_btc", "qty", "sale_price", "cur_price_btc", "cur_price_usd", "p_profit_btc", "p_profit_usd", "% change");
+
+    trailer::models::PositionSum::calculate(positions.clone());
+    
+    for position in positions {
+        let potential_profit_usd = position.potential_profit_btc * btc_price;
+
+        if hide_losers && position.potential_profit_btc <= 0.0 { continue; }
+
+        println!("{trade_type:<12}{cost_btc:<12}{order_amount:<16}{sale_price:<16}{price:<16}{cost_usd:<16}{potential_profit_btc:<16}{potential_profit_usd:<16}{percent_change:<8}",
+            trade_type                  = position.trade_type.colored_string(),
+            cost_btc                    = format!("{:.2}",  position.cost_btc),
+            order_amount                = format!("{:.2}",  position.qty),
+            sale_price                  = format!("{:.8}",  position.sale_price),
+            price                       = format!("{:.8}",  price),
+            cost_usd                    = format!("${:.2}", position.cost_btc * btc_price),
+            potential_profit_btc        = colored_number(position.potential_profit_btc, format!("{:>11.8}", position.potential_profit_btc)),
+            potential_profit_usd        = colored_number(potential_profit_usd,          format!("${:.2}", potential_profit_usd)),
+            percent_change              = colored_number(position.potential_profit_percent,      format!("{:.2}%", position.potential_profit_percent)));
+    }
+
+    Ok(())
+}
+
+pub fn _evaluate_trades(symbol: String, orders: Vec<trailer::models::Order>, price: f64, btc_price: f64) -> Result<(), TrailerError> {
     use colored::*;
     use trailer::models::{ TradeType };
 
     ::display::title_bar(&format!("{}", symbol.yellow()));
 
     println!("{:8}{:<8}{:<16}{:<16}{:<16}{:<16}{:<16}{:<16}{:<8}",
-        "type", "btc", "qty", "cost", "price_btc", "cost_usd", "uprofit", "uprofit usd", "% change");
+        "type", "btc", "qty", "sale_price", "cur_price_btc", "cur_price_usd", "uprofit", "uprofit usd", "% change");
 
     for order in orders {
         let cost_btc = order.qty * order.price;

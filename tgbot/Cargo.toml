@@ -1,10 +1,10 @@
 [package]
-name = "telegram-bot"
+name = "tgbot"
 version = "0.1.0"
 authors = ["Rob Saunders <rob@wearebrandnew.com>"]
 
 [dependencies]
-telegram-bot = "0.5"
+telegram-bot = "0.6.1"
 rustc-serialize = "0.3"
 chrono = "*"
 fnv = "1.0"
@@ -12,3 +12,5 @@ glob = "0.2"
 lazy_static = "0.2"
 rand = "0.3"
 nom = "3.0"
+futures = "0.1"
+tokio-core = "0.1"

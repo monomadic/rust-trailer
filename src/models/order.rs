@@ -1,5 +1,4 @@
-use models::TradeType;
-use models::trades::Trade;
+use models::*;
 
 #[derive(Debug, Clone)]
 pub struct Order {
