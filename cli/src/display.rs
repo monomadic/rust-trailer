@@ -142,31 +142,7 @@ pub fn show_price(price: Price) {
     println!("{}\t{}", price.0, price.1);
 }
 
-// pub fn show_total_profits(funds: Vec<(String, f64, f64)>) {
-//     let mut profit = 0.0_f64;
-
-//     for (symbol, total, _locked) in funds {
-//     }
-
-//     println!("\nTotal Profit: {}", profit);
-// }
-
 pub fn show_funds(funds: Funds) {
-    // println!("funds: {:?}", funds);
-    // let mut btc_price:f64 = match prices.get("BTCUSDT") {
-    //     Some(p) => *p,
-    //     None => 0.0,
-    // };
-
-    // if prices.contains_key("BTC") {
-    //     // must be kucoin - FIXME
-    //     btc_price = *prices.get("BTC").expect("kucoin didn't give us btc");
-    // }
-
-    // println!("BTC VALUE::: {:?}", funds.clone());
-
-    // println!("{}", format!("{:8}\t{:8} \t{:8}\t{:16}", "Coin", "Amount", "Value BTC", "Current Price"));
-
     if let Some(btc) = funds.clone().btc {
         let value_in_usd = btc.value_in_usd.unwrap_or(0.0); // (value_in_usd * 1.0 / btc.amount)
         println!("{:<8}\t{:<8.2} \t{:<8.2}\t{:<16.8}", "BTC".blue(), btc.amount, (value_in_usd * btc.amount), value_in_usd);
@@ -181,87 +157,64 @@ pub fn show_funds(funds: Funds) {
         println!("{:<8}\t{:<8.2} \t{:<8.3}\t{:<16.8}", altcoin.symbol.yellow(), altcoin.amount, (value_in_btc * altcoin.amount), value_in_btc);
     }
 
-    // for altcoin in funds.clone().alts {
-    //     let symbol = altcoin.symbol.yellow();
-    //     let amount = altcoin.amount;
-
-    //     let value_btc:f64 = if prices.contains_key("BTC") {
-    //         *prices.get(&altcoin.symbol).expect("thing to have thing") / altcoin.amount
-    //     } else {
-    //         price_in_btc(altcoin.symbol, prices.clone()).unwrap_or(0.0)
-    //     };
-
-    //     let current_price:f64 = if prices.contains_key("BTC") {
-    //         value_btc / altcoin.amount
-    //     } else {
-    //         value_btc * altcoin.amount
-    //     };
-
-    //     // let value_btc = altcoin.amount * current_price;
-
-
-
-    //     println!("{:<8}\t{:<8.2} \t{:<8.2}\t{:<16.8}", symbol, amount, value_btc, current_price);
-    // }
-
-    // println!("\nTotal value in BTC: {}", funds.total_btc(btc_price, prices.clone()));
-    // println!("Total value in USD: {}\n", funds.total_btc(btc_price, prices) * btc_price);
-
     println!("\nTotal value in BTC: {:.3}", funds.total_value_in_btc);
     println!("Total value in USD: {:.3}\n", funds.total_value_in_usd);
 }
 
-// pub fn show_funds(funds: Vec<CoinAsset>, current_prices: Prices) {
-//     println!("\nBalances");
-//     println!("========");
-//     let mut total_btc = 0.0_f64;
+pub fn show_positions(positions: Vec<Position>, hide_losers: bool) {
+    // title_bar(&format!("{}", symbol.yellow()));
 
-//     // println!("{:?}", funds);
+    println!("{:12}{:<12}{:<16}{:<16}{:<16}{:<16}{:<16}{:<16}{:<8}",
+        "trade_type", "cost_btc", "qty", "sale_price", "cur_price_btc", "cur_price_usd", "p_profit_btc", "p_profit_usd", "% change");
 
-//     // let btc_value = current_prices.get("BTC").expect(&format!("BTCUSDT to be present in current prices: {:?}", current_prices));
-//     println!("{}", format!("{:8}\t{:16} \t{}\t{}", "Coin", "Total", "Value BTC", "Current Price").bold());
+    for position in positions {
+        if hide_losers && position.potential_profit_btc <= 0.0 { continue; }
+        show_position(position);
+    }
+}
 
-//     for asset in funds {
+pub fn show_position(position: Position) {
+    println!("{trade_type:<12}{cost_btc:<12}{order_amount:<16}{sale_price:<16}{price:<16}{cost_usd:<16}{potential_profit_btc:<16}{potential_profit_usd:<16}{percent_change:<8}",
+        trade_type                  = position.trade_type.colored_string(),
+        cost_btc                    = format!("{:.2}",  position.cost_btc),
+        order_amount                = format!("{:.2}",  position.qty),
+        sale_price                  = format!("{:.8}",  position.sale_price),
+        price                       = format!("{:.8}",  position.current_price),
+        cost_usd                    = format!("${:.2}", position.cost_btc),
+        potential_profit_btc        = colored_number(position.potential_profit_btc,         format!("{:>11.8}", position.potential_profit_btc)),
+        potential_profit_usd        = colored_number(position.potential_profit_usd,         format!("${:.2}", position.potential_profit_usd)),
+        percent_change              = colored_number(position.potential_profit_percent,     format!("{:.2}%", position.potential_profit_percent)));
+}
 
-//         if asset.symbol == "BTC" {
-//             *current_prices
-//                 .get(&format!("{}BTC", asset.symbol))
-//                 .expect(&format!("{}BTC to be present in current prices: {:?}", asset.symbol, current_prices))
+// pub fn show_position(symbol: String, orders: Vec<trailer::models::Order>, price: f64, btc_price: f64, hide_losers: bool) -> Result<(), TrailerError> {
+//     use colored::*;
+//     use ::display::colored_number;
 
-//         } else if (asset.symbol == "USDT" || asset.symbol == "USD") {
+//     let positions = trailer::models::Position::calculate(orders, &symbol, price, btc_price);
 
-//         } else {
-//             if asset.amount >= 1.0 {
+//     ::display::title_bar(&format!("{}", symbol.yellow()));
 
-//             }
-//         }
+//     println!("{:12}{:<12}{:<16}{:<16}{:<16}{:<16}{:<16}{:<16}{:<8}",
+//         "trade_type", "cost_btc", "qty", "sale_price", "cur_price_btc", "cur_price_usd", "p_profit_btc", "p_profit_usd", "% change");
 
-//         // let locked_str = if locked > 0.0 {
-//         //     format!("({} in orders)", locked)
-//         // } else { "".to_string() };
+//     trailer::models::PositionSum::calculate(positions.clone());
+    
+//     for position in positions {
+//         let potential_profit_usd = position.potential_profit_btc * btc_price;
 
-//         if asset.amount >= 1.0 || asset.symbol == "BTC" {
+//         if hide_losers && position.potential_profit_btc <= 0.0 { continue; }
 
-//             let btc_value:f64 = if (asset.symbol != "BTC" && asset.symbol != "USDT") {
-//                 *current_prices
-//                     .get(&format!("{}BTC", asset.symbol))
-//                     .expect(&format!("{}BTC to be present in current prices: {:?}", asset.symbol, current_prices))
-//             } else {
-//                 *current_prices
-//                     .get("BTCUSDT")
-//                     .expect(&format!("BTCUSDT to be present in current prices: {:?}", current_prices))
-//             };
-
-//             let coin_value_in_btc = if asset.symbol != "BTC" {
-//                 total_btc += asset.amount * btc_value;
-//                 format!("{:.3} btc", asset.amount * btc_value)
-//             } else {
-//                 total_btc += asset.amount;
-//                 format!("${:.2}", btc_value)
-//             };
-
-//             println!("{:8}\t{:16.2} \t{:.3}\t{:.8}", asset.symbol.yellow(), asset.amount, coin_value_in_btc, btc_value);
-//         }
+//         println!("{trade_type:<12}{cost_btc:<12}{order_amount:<16}{sale_price:<16}{price:<16}{cost_usd:<16}{potential_profit_btc:<16}{potential_profit_usd:<16}{percent_change:<8}",
+//             trade_type                  = position.trade_type.colored_string(),
+//             cost_btc                    = format!("{:.2}",  position.cost_btc),
+//             order_amount                = format!("{:.2}",  position.qty),
+//             sale_price                  = format!("{:.8}",  position.sale_price),
+//             price                       = format!("{:.8}",  price),
+//             cost_usd                    = format!("${:.2}", position.cost_btc * btc_price),
+//             potential_profit_btc        = colored_number(position.potential_profit_btc, format!("{:>11.8}", position.potential_profit_btc)),
+//             potential_profit_usd        = colored_number(potential_profit_usd,          format!("${:.2}", potential_profit_usd)),
+//             percent_change              = colored_number(position.potential_profit_percent,      format!("{:.2}%", position.potential_profit_percent)));
 //     }
-//     println!("\nTotal BTC: {}", total_btc);
+
+//     Ok(())
 // }

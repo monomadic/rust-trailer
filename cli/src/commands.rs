@@ -206,8 +206,8 @@ pub fn run_docopt() -> Result<String, TrailerError> {
 
             // --group
             let mut processed_orders = match args.flag_group {
-                true => trailer::models::average_orders(orders),
-                false => trailer::models::compact_orders(orders),
+                true => trailer::models::average_orders(orders.clone()),
+                false => trailer::models::compact_orders(orders.clone()),
             };
 
             // --last
@@ -216,7 +216,10 @@ pub fn run_docopt() -> Result<String, TrailerError> {
                 processed_orders = processed_orders.into_iter().rev().take(2).collect::<Vec<Order>>().into_iter().rev().collect();
             };
 
-            evaluate_trades(symbol, processed_orders, price, btc_price, args.flag_hide_losers)?;
+            let positions = trailer::models::Position::calculate(orders, &symbol, price, btc_price);
+            ::display::show_positions(positions, args.flag_hide_losers);
+
+            // evaluate_trades(symbol, processed_orders, price, btc_price, args.flag_hide_losers)?;
         }
 
         if args.cmd_rsi {
@@ -265,7 +268,6 @@ pub fn run_docopt() -> Result<String, TrailerError> {
                     rsi_1d      = ::display::colored_rsi(*rsi_1d.last().unwrap(), format!("{:.0}", rsi_1d.last().unwrap())));
             }
         }
-
     };
 
     Ok(if args.flag_verbose { "done.".to_string() } else { "".to_string() })
@@ -344,78 +346,80 @@ pub fn trade_position(symbol: String, symbol_qty: f64, orders: Vec<trailer::mode
     Ok(())
 }
 
-pub fn evaluate_trades(symbol: String, orders: Vec<trailer::models::Order>, price: f64, btc_price: f64, hide_losers: bool) -> Result<(), TrailerError> {
-    use colored::*;
-    use ::display::colored_number;
+// pub fn evaluate_trades(symbol: String, orders: Vec<trailer::models::Order>, price: f64, btc_price: f64, hide_losers: bool) -> Result<(), TrailerError> {
+//     use colored::*;
+//     use ::display::colored_number;
 
-    let positions = trailer::models::Position::calculate(orders, &symbol, price, btc_price);
+//     let positions = trailer::models::Position::calculate(orders, &symbol, price, btc_price);
 
-    ::display::title_bar(&format!("{}", symbol.yellow()));
+//     ::display::title_bar(&format!("{}", symbol.yellow()));
 
-    println!("{:12}{:<12}{:<16}{:<16}{:<16}{:<16}{:<16}{:<16}{:<8}",
-        "trade_type", "cost_btc", "qty", "sale_price", "cur_price_btc", "cur_price_usd", "p_profit_btc", "p_profit_usd", "% change");
+//     ::display::show_positions(positions);
 
-    trailer::models::PositionSum::calculate(positions.clone());
-    
-    for position in positions {
-        let potential_profit_usd = position.potential_profit_btc * btc_price;
+//     println!("{:12}{:<12}{:<16}{:<16}{:<16}{:<16}{:<16}{:<16}{:<8}",
+//         "trade_type", "cost_btc", "qty", "sale_price", "cur_price_btc", "cur_price_usd", "p_profit_btc", "p_profit_usd", "% change");
 
-        if hide_losers && position.potential_profit_btc <= 0.0 { continue; }
+//     trailer::models::PositionSum::calculate(positions.clone());
 
-        println!("{trade_type:<12}{cost_btc:<12}{order_amount:<16}{sale_price:<16}{price:<16}{cost_usd:<16}{potential_profit_btc:<16}{potential_profit_usd:<16}{percent_change:<8}",
-            trade_type                  = position.trade_type.colored_string(),
-            cost_btc                    = format!("{:.2}",  position.cost_btc),
-            order_amount                = format!("{:.2}",  position.qty),
-            sale_price                  = format!("{:.8}",  position.sale_price),
-            price                       = format!("{:.8}",  price),
-            cost_usd                    = format!("${:.2}", position.cost_btc * btc_price),
-            potential_profit_btc        = colored_number(position.potential_profit_btc, format!("{:>11.8}", position.potential_profit_btc)),
-            potential_profit_usd        = colored_number(potential_profit_usd,          format!("${:.2}", potential_profit_usd)),
-            percent_change              = colored_number(position.potential_profit_percent,      format!("{:.2}%", position.potential_profit_percent)));
-    }
+//     for position in positions {
+//         let potential_profit_usd = position.potential_profit_btc * btc_price;
 
-    Ok(())
-}
+//         if hide_losers && position.potential_profit_btc <= 0.0 { continue; }
 
-pub fn _evaluate_trades(symbol: String, orders: Vec<trailer::models::Order>, price: f64, btc_price: f64) -> Result<(), TrailerError> {
-    use colored::*;
-    use trailer::models::{ TradeType };
+//         println!("{trade_type:<12}{cost_btc:<12}{order_amount:<16}{sale_price:<16}{price:<16}{cost_usd:<16}{potential_profit_btc:<16}{potential_profit_usd:<16}{percent_change:<8}",
+//             trade_type                  = position.trade_type.colored_string(),
+//             cost_btc                    = format!("{:.2}",  position.cost_btc),
+//             order_amount                = format!("{:.2}",  position.qty),
+//             sale_price                  = format!("{:.8}",  position.sale_price),
+//             price                       = format!("{:.8}",  price),
+//             cost_usd                    = format!("${:.2}", position.cost_btc * btc_price),
+//             potential_profit_btc        = colored_number(position.potential_profit_btc, format!("{:>11.8}", position.potential_profit_btc)),
+//             potential_profit_usd        = colored_number(potential_profit_usd,          format!("${:.2}", potential_profit_usd)),
+//             percent_change              = colored_number(position.potential_profit_percent,      format!("{:.2}%", position.potential_profit_percent)));
+//     }
 
-    ::display::title_bar(&format!("{}", symbol.yellow()));
+//     Ok(())
+// }
 
-    println!("{:8}{:<8}{:<16}{:<16}{:<16}{:<16}{:<16}{:<16}{:<8}",
-        "type", "btc", "qty", "sale_price", "cur_price_btc", "cur_price_usd", "uprofit", "uprofit usd", "% change");
+// pub fn _evaluate_trades(symbol: String, orders: Vec<trailer::models::Order>, price: f64, btc_price: f64) -> Result<(), TrailerError> {
+//     use colored::*;
+//     use trailer::models::{ TradeType };
 
-    for order in orders {
-        let cost_btc = order.qty * order.price;
-        let cost_usd = (price * order.qty) * btc_price;
-        let percent_change = 100. - 100. / order.price * price;
+//     ::display::title_bar(&format!("{}", symbol.yellow()));
 
-        let (profit, buy_type) = match order.order_type {
-            TradeType::Buy => {(
-                ((order.qty * price) - cost_btc),
-                ("BUY".green())
-            )},
-            TradeType::Sell => {(
-                (cost_btc - (order.qty * price)),
-                ("SELL".red())
-            )},
-        };
+//     println!("{:8}{:<8}{:<16}{:<16}{:<16}{:<16}{:<16}{:<16}{:<8}",
+//         "type", "btc", "qty", "sale_price", "cur_price_btc", "cur_price_usd", "uprofit", "uprofit usd", "% change");
 
-        let profit_usd = profit * btc_price;
+//     for order in orders {
+//         let cost_btc = order.qty * order.price;
+//         let cost_usd = (price * order.qty) * btc_price;
+//         let percent_change = 100. - 100. / order.price * price;
 
-        use ::display::colored_number;
-        println!("{buy_type:<8}{cost_btc:<8}{order_amount:<16}{order_price:<16}{price:<16}{cost_usd:<16}{profit:<16}{profit_usd:<16}{percent_change:<8}",
-            buy_type        = buy_type,
-            cost_btc        = format!("{:.2}", cost_btc),
-            order_amount    = format!("{:.2}", order.qty),
-            order_price     = format!("{:.8}", order.price),
-            price           = format!("{:.8}", price),
-            cost_usd        = format!("${:.2}", cost_usd),
-            profit          = colored_number(profit,            format!("{:>11.8}", profit)),
-            profit_usd      = colored_number(profit_usd,        format!("${:.2}", profit_usd)),
-            percent_change  = colored_number(percent_change,    format!("{:.2}%", percent_change)));
-    }
+//         let (profit, buy_type) = match order.order_type {
+//             TradeType::Buy => {(
+//                 ((order.qty * price) - cost_btc),
+//                 ("BUY".green())
+//             )},
+//             TradeType::Sell => {(
+//                 (cost_btc - (order.qty * price)),
+//                 ("SELL".red())
+//             )},
+//         };
 
-    Ok(())
-}
+//         let profit_usd = profit * btc_price;
+
+//         use ::display::colored_number;
+//         println!("{buy_type:<8}{cost_btc:<8}{order_amount:<16}{order_price:<16}{price:<16}{cost_usd:<16}{profit:<16}{profit_usd:<16}{percent_change:<8}",
+//             buy_type        = buy_type,
+//             cost_btc        = format!("{:.2}", cost_btc),
+//             order_amount    = format!("{:.2}", order.qty),
+//             order_price     = format!("{:.8}", order.price),
+//             price           = format!("{:.8}", price),
+//             cost_usd        = format!("${:.2}", cost_usd),
+//             profit          = colored_number(profit,            format!("{:>11.8}", profit)),
+//             profit_usd      = colored_number(profit_usd,        format!("${:.2}", profit_usd)),
+//             percent_change  = colored_number(percent_change,    format!("{:.2}%", percent_change)));
+//     }
+
+//     Ok(())
+// }
