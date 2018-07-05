@@ -19,7 +19,7 @@ Usage:
     trade <exchange> (buy|sell) <symbol> <amount> <price>
     trade <exchange> stop (loss|gain) <symbol> <amount> <price>
     trade <exchange> b <symbol>
-    trade <exchange> ev <symbol> [--group] [--last] [--hide-losers]
+    trade <exchange> ev <symbol> [--group] [--limit=<num>] [--hide-losers]
     trade <exchange> rsi <symbol>
     trade <exchange> pl <symbol>
     trade <exchange> pos <pairs>...
@@ -61,7 +61,7 @@ struct Args {
     arg_pairs: Option<Vec<String>>,
 
     flag_group: bool,
-    flag_last: bool,
+    flag_limit: usize,
     flag_verbose: bool,
     flag_sort_by_value: bool,
     flag_hide_losers: bool,
@@ -210,13 +210,13 @@ pub fn run_docopt() -> Result<String, TrailerError> {
                 false => trailer::models::compact_orders(orders.clone()),
             };
 
-            // --last
-            if args.flag_last {
+            // --limit=<num>
+            if args.flag_limit > 0 {
                 use trailer::models::Order;
-                processed_orders = processed_orders.into_iter().rev().take(2).collect::<Vec<Order>>().into_iter().rev().collect();
+                processed_orders = processed_orders.into_iter().rev().take(args.flag_limit).collect::<Vec<Order>>().into_iter().rev().collect();
             };
 
-            let positions = trailer::models::Position::calculate(orders, &symbol, price, btc_price);
+            let positions = trailer::models::Position::calculate(processed_orders, &symbol, price, btc_price);
             ::display::show_positions(positions, args.flag_hide_losers);
 
             // evaluate_trades(symbol, processed_orders, price, btc_price, args.flag_hide_losers)?;
