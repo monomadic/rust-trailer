@@ -13,13 +13,8 @@ pub fn get_str(default: &str) -> Result<String, TrailerError> {
     }
 
     // trim
-    if let Some('\n')=s.chars().next_back() {
-        s.pop();
-    }
-
-    if let Some('\r')=s.chars().next_back() {
-        s.pop();
-    }
+    if let Some('\n') = s.chars().next_back() { s.pop(); }
+    if let Some('\r') = s.chars().next_back() { s.pop(); }
 
     Ok(s)
 }

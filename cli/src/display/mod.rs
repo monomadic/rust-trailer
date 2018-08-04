@@ -5,6 +5,12 @@ use colored::*;
 use trailer::models::*;
 use trailer::error::*;
 
+pub mod asset;
+pub mod funds;
+pub mod order;
+pub mod position;
+pub mod position_accumulated;
+
 pub fn error(error: TrailerError) {
     println!("{}", format!("Error: {}", error.message).red());
 }
@@ -35,32 +41,7 @@ pub fn colored_balance(num: f64) -> String {
     }
 }
 
-pub fn show_orders(orders: Vec<Order>) {
-//    println!("{}", "\nOpen Orders".to_string().yellow());
-    for order in orders {
-        println!("{:20}\t{:20}\t{:20.8}\t{:20.2}",
-            order.symbol, order.order_type, order.price, order.qty);
-    }
-}
-
-pub fn show_buckets(buckets: Vec<TradeBucket>) {
-    println!("{}", "\nTrade Buckets".to_string().yellow());
-    println!("{:<20} {:<20} {:<20} {:<20}", "Trades", "Locked Profit", "Buy Avg", "Sell Avg");
-    for bucket in buckets {
-        // println!("{:<20} {:<20.8} {:<20.8} {:<20.8}",
-        //     format!("{}", bucket.trades.len()).white(),
-        //     colored_balance(bucket.profit),
-        //     colored_balance(bucket.average_buy),
-        //     colored_balance(bucket.average_sell)
-        // );
-    }
-}
-
-pub fn show_history(history: Vec<Order>) {
-    println!("{:?}", history);
-}
-
-pub fn show_balances(balances: Vec<CoinAsset>) {
+pub fn show_balances(balances: Vec<Asset>) {
     title_bar("Balances");
     println!("{:<20}{:<20}{:<20}", "Symbol", "Amount", "Locked");
     for coin in balances {
@@ -138,8 +119,8 @@ pub fn show_prices(prices: Prices) {
     println!("Total Pairs: {}", prices.len());
 }
 
-pub fn show_price(price: Price) {
-    println!("{}\t{}", price.0, price.1);
+pub fn display_price(price: Price) -> String {
+    format!("{}\t{}", price.0, price.1)
 }
 
 pub fn show_funds(funds: Funds) {
@@ -170,6 +151,16 @@ pub fn show_positions(positions: Vec<Position>, hide_losers: bool) {
     for position in positions {
         if hide_losers && position.potential_profit_btc <= 0.0 { continue; }
         show_position(position);
+    }
+}
+
+pub fn show_positions_compact(positions: Vec<Position>, hide_losers: bool) {
+    for position in positions {
+        println!("{trade_type:<12}{symbol:12}{cost_btc:<12}{percent_change:<8}",
+            trade_type                  = position.trade_type.colored_string(),
+            symbol                      = position.symbol,
+            cost_btc                    = format!("{:.2}",  position.cost_btc),
+            percent_change              = colored_number(position.potential_profit_percent,     format!("{:.2}% (${:.2})", position.potential_profit_percent, position.potential_profit_usd)));
     }
 }
 

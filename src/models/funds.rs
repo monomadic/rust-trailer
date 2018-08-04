@@ -1,33 +1,10 @@
-use exchanges::*;
-
-#[derive(Debug, Clone)]
-pub struct CoinAsset {
-    pub symbol: String,
-    pub amount: f64,
-    pub locked: f64,
-    pub exchange: Exchange,
-    pub value_in_btc: Option<f64>,
-    pub value_in_usd: Option<f64>,
-}
-
-impl Default for CoinAsset {
-    fn default() -> Self {
-        CoinAsset {
-            symbol: "<None>".to_string(),
-            amount: 0.0,
-            locked: 0.0,
-            exchange: Exchange::Binance,
-            value_in_btc: None,
-            value_in_usd: None,
-        }
-    }
-}
+use models::asset::Asset;
 
 #[derive(Debug, Clone)]
 pub struct Funds {
-    pub btc: Option<CoinAsset>,
-    pub fiat: Vec<CoinAsset>,
-    pub alts: Vec<CoinAsset>,
+    pub btc: Option<Asset>,
+    pub fiat: Vec<Asset>,
+    pub alts: Vec<Asset>,
     pub total_value_in_usd: f64,
     pub total_value_in_btc: f64,
 }
@@ -58,8 +35,8 @@ impl Funds {
     // }
 }
 
-pub fn sort_funds(funds: Vec<CoinAsset>) -> Funds {
-    let filter:Vec<CoinAsset> = funds.clone().into_iter().filter(|c| c.amount > 0.9).collect();
+pub fn sort_funds(funds: Vec<Asset>) -> Funds {
+    let filter:Vec<Asset> = funds.clone().into_iter().filter(|c| c.amount > 0.9).collect();
 
     Funds {
         btc:    funds.clone().into_iter().find(|c| c.symbol == "BTC"),

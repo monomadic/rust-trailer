@@ -6,41 +6,29 @@ extern crate binance;
 
 mod csv;
 mod error;
-
-#[derive(Clone, Copy, Debug)]
-struct TrailingStopLoss {
-    trigger_price: f64,
-    stop_percent: f64,
-    triggered: bool,
-}
+mod bot;
 
 fn main() {
-    let tsl = TrailingStopLoss {
-        trigger_price: 10.,
-        stop_percent: 10.,
-        triggered: false,
-    };
+    let conf = ::trailer::config::read(true).expect("config failed to read");
+    let keys = &conf.exchange["binance"];
+    let binance_client = ::trailer::exchanges::binance::connect(&keys.api_key, &keys.secret_key);
 
-    let bot = trailer::socket::BinanceWS::new(move |event| {
-        match event {
-            price_change => {
-                let _ = trailing_stop_loss(tsl);
-            },
-            // _ => println!("{:?}", event),
-        };
-    });
+    use ::trailer::exchanges::*;
+    let price = binance_client.price("ICXBTC").expect("ICXBTC to return price");
+
+    println!("price retrieved for ICXBTC: {}", price);
+
+    use std::cell::RefCell;
+    let bot = bot::TrailerBot::new("icxbtc", price, 10.0);
+
+    // bot::TrailerBot{symbol: "icxbtc".to_string(), sell_threshold: RefCell::new(price), stop_distance_percent: 10.0};
 
     match bot.run() {
-        Ok(_) => println!("done."),
+        Ok(m) => print!("{}", m),
         Err(e) => println!("error: {:?}", e),
     };
 
     // let bot = Bot::new_with_config("./data/bots/new.toml");
     // let csv = csv::load_backtest_data("./data/backtests/new.csv").expect("csv failed to load");
 
-}
-
-fn trailing_stop_loss(tsl: TrailingStopLoss) -> Result<(), String> {
-    println!("tsl: {:?}", tsl);
-    Ok(())
 }

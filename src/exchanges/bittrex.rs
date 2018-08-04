@@ -41,8 +41,8 @@ impl ExchangeAPI for BittrexAPI {
         let balances = self.balances()?;
         let prices = self.prices()?;
 
-        let alts_all:Vec<CoinAsset> = balances.clone().into_iter().filter(|c| c.symbol != "USDT" && c.symbol != "BTC").collect();
-        let alts:Vec<CoinAsset> = alts_all.into_iter().filter(|c| c.amount > 0.9).collect();
+        let alts_all:Vec<Asset> = balances.clone().into_iter().filter(|c| c.symbol != "USDT" && c.symbol != "BTC").collect();
+        let alts:Vec<Asset> = alts_all.into_iter().filter(|c| c.amount > 0.9).collect();
 
         Ok(Funds {
             btc:    balances.clone().into_iter().find(|c| c.symbol == "BTC"),
@@ -53,11 +53,11 @@ impl ExchangeAPI for BittrexAPI {
         })
     }
 
-    fn balances(&self) -> Result<Vec<CoinAsset>, TrailerError> {
+    fn balances(&self) -> Result<Vec<Asset>, TrailerError> {
         let balances = self.client.get_balances()?;
 
         Ok(balances.into_iter().map(|balance| {
-            CoinAsset {
+            Asset {
                 symbol: balance.currency,
                 amount: balance.balance as f64,
                 locked: (balance.balance - balance.available) as f64,

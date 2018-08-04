@@ -1,0 +1,17 @@
+[package]
+name = "server"
+version = "0.1.0"
+authors = ["Rob Saunders <rob@wearebrandnew.com>"]
+
+[dependencies]
+trailer = { path = "../" }
+# ta = "0.1.0"
+iron = "0.6"
+router = "*"
+staticfile = "*"
+mount = "*"
+horrorshow = "*"
+toml = "*"
+serde = "*"
+serde_derive = "1.0"
+regex = "0.2"

@@ -1,5 +1,6 @@
 pub mod binance;
 pub mod bittrex;
+pub mod bitfinex;
 pub mod kucoin;
 
 use ::models::*;
@@ -8,7 +9,7 @@ use ::error::*;
 pub trait ExchangeAPI {
     fn display(&self)               -> String;
     fn funds(&self)                 -> Result<Funds, TrailerError>;
-    fn balances(&self)              -> Result<Vec<CoinAsset>, TrailerError>;
+    fn balances(&self)              -> Result<Vec<Asset>, TrailerError>;
     fn price(&self, symbol: &str)   -> Result<f64, TrailerError>;
     fn prices(&self)                -> Result<Prices, TrailerError>;
     fn limit_buy(&self, symbol: &str, amount: f64, price: f64) -> Result<(), TrailerError>;
@@ -18,10 +19,16 @@ pub trait ExchangeAPI {
     fn past_trades_for(&self, symbol: &str) -> Result<Vec<Order>, TrailerError>;
     fn chart_data(&self, symbol: &str, interval: &str) -> Result<Vec<Candlestick>, TrailerError>;
     fn btc_price(&self)             -> Result<f64, TrailerError>;
+
+    fn price_for_symbol(&self, symbol: &str) -> Result<f64, TrailerError> {
+        Ok(self.funds()?.alts.iter().find(|c|c.symbol == symbol)
+            .ok_or(TrailerError::generic(&format!("symbol not in funds: {}", symbol)))?.amount)
+    }
 }
 
 #[derive(Debug, Deserialize, Clone)]
 pub enum Exchange {
+    Unknown,
     Bittrex,
     Binance,
     Kucoin,
@@ -33,10 +40,12 @@ impl FromStr for Exchange {
 
     fn from_str(s: &str) -> Result<Exchange, ()> {
         match s {
-            "bittrex" => Ok(Exchange::Bittrex),
-            "binance" => Ok(Exchange::Binance),
-            "kucoin" => Ok(Exchange::Binance),
-            _ => Err(()),
+            "unknown"       => Ok(Exchange::Unknown),
+            "-"             => Ok(Exchange::Unknown),
+            "bittrex"       => Ok(Exchange::Bittrex),
+            "binance"       => Ok(Exchange::Binance),
+            "kucoin"        => Ok(Exchange::Binance),
+            _               => Err(()),
         }
     }
 }
@@ -48,6 +57,7 @@ impl ToString for Exchange {
             &Exchange::Bittrex => "bittrex".into(),
             &Exchange::Binance => "binance".into(),
             &Exchange::Kucoin => "kucoin".into(),
+            _ => "-".into(),
         }
     }
 }

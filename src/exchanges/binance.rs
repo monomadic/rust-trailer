@@ -53,8 +53,8 @@ impl ExchangeAPI for BinanceAPI {
         let mut btc = balances.clone().into_iter().find(|c| c.symbol == "BTC");
         let usdt = balances.clone().into_iter().find(|c| c.symbol == "USDT");
 
-        let alts_all:Vec<CoinAsset> = balances.clone().into_iter().filter(|c| c.symbol != "USDT" && c.symbol != "BTC").collect();
-        let mut alts:Vec<CoinAsset> = alts_all.into_iter().filter(|c| c.amount > 0.9).collect();
+        let alts_all:Vec<Asset> = balances.clone().into_iter().filter(|c| c.symbol != "USDT" && c.symbol != "BTC").collect();
+        let mut alts:Vec<Asset> = alts_all.into_iter().filter(|c| c.amount > 0.9).collect();
 
         let btc_price = self.btc_price()?;
 
@@ -85,11 +85,11 @@ impl ExchangeAPI for BinanceAPI {
     }
 
     /// Simple list of balances
-    fn balances(&self) -> Result<Vec<CoinAsset>, TrailerError> {
+    fn balances(&self) -> Result<Vec<Asset>, TrailerError> {
         let result = self.account.get_account()?;
 
         Ok(result.balances.into_iter().map(|balance| {
-            CoinAsset {
+            Asset {
                 symbol: balance.asset,
                 amount: balance.free.parse::<f64>().unwrap() + balance.locked.parse::<f64>().unwrap(),
                 locked: balance.locked.parse::<f64>().unwrap(),

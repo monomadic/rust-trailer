@@ -41,17 +41,20 @@ pub fn compact_orders(orders: Vec<Order>) -> Vec<Order> {
 pub fn group_orders(orders: Vec<Order>) -> Vec<Vec<Order>> {
     let mut grouped_orders = Vec::new();
     let mut current_order_group = Vec::new();
-    let mut current_order_type = orders.first().unwrap().order_type;
 
-    for order in orders.clone() {
-        if order.order_type != current_order_type {
-            grouped_orders.push(current_order_group.clone());
-            current_order_group = Vec::new();
-            current_order_type = order.order_type;
+    if let Some(first_order) = orders.first() {
+        let mut current_order_type = first_order.order_type;
+
+        for order in orders.clone() {
+            if order.order_type != current_order_type {
+                grouped_orders.push(current_order_group.clone());
+                current_order_group = Vec::new();
+                current_order_type = order.order_type;
+            }
+            current_order_group.push(order);
         }
-        current_order_group.push(order);
+        grouped_orders.push(current_order_group);
     }
-    grouped_orders.push(current_order_group);
     grouped_orders
 }
 

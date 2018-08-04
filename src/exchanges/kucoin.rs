@@ -46,10 +46,10 @@ impl ExchangeAPI for KucoinAPI {
         })
     }
 
-    fn balances(&self) -> Result<Vec<CoinAsset>, TrailerError> {
+    fn balances(&self) -> Result<Vec<Asset>, TrailerError> {
         // println!("BALANCE in FUNDS(): {:?}", self.client.balance());
         Ok(self.client.balance()?.into_iter().map(|balance| {
-            CoinAsset {
+            Asset {
                 symbol:         balance.symbol,
                 amount:         balance.balance,
                 locked:         balance.locked,

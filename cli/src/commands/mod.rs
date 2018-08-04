@@ -7,6 +7,9 @@ use trailer::error::*;
 
 use docopt::Docopt;
 
+mod stop;
+mod position;
+
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 const USAGE: &'static str = "
 Usage:
@@ -16,14 +19,15 @@ Usage:
     trade <exchange> past-orders [<symbol>]
     trade <exchange> prices
     trade <exchange> price <symbol>
-    trade <exchange> (buy|sell) <symbol> <amount> <price>
-    trade <exchange> stop (loss|gain) <symbol> <amount> <price>
+    trade <exchange> (buy|sell) [<amount>] [<price>] [--slip=<num>] [--sl=<num>] <symbol>
+    trade <exchange> stop (loss|gain) <symbol> [<amount>] [<price>]
     trade <exchange> b <symbol>
-    trade <exchange> ev <symbol> [--group] [--limit=<num>] [--hide-losers]
+    trade <exchange> ev <symbol> [--group] [--limit=<num>] [--hide-losers] [--compact]
     trade <exchange> rsi <symbol>
     trade <exchange> pl <symbol>
-    trade <exchange> pos <pairs>...
-     <symbol>
+    trade <exchange> rsis <pairs>...
+    trade <exchange> evs [--compact] <pairs>...
+    trade <exchange> positions
 
 Options:
     --verbose   show detailed output
@@ -51,9 +55,11 @@ struct Args {
     cmd_past_orders: bool,
     cmd_b: bool,
     cmd_ev: bool,
+    cmd_evs: bool,
     cmd_rsi: bool,
     cmd_pl: bool,
-    cmd_pos: bool,
+    cmd_rsis: bool,
+    cmd_positions: bool,
 
     arg_symbol: Option<String>,
     arg_amount: Option<f64>,
@@ -65,6 +71,9 @@ struct Args {
     flag_verbose: bool,
     flag_sort_by_value: bool,
     flag_hide_losers: bool,
+    flag_compact: bool,
+    flag_sl: Option<f64>,
+    flag_slip: Option<f64>,
 }
 
 pub fn run_docopt() -> Result<String, TrailerError> {
@@ -76,24 +85,25 @@ pub fn run_docopt() -> Result<String, TrailerError> {
     let conf = trailer::config::read(args.flag_verbose)?;
     let mut clients = Vec::new();
 
-    fn get_client(exchange: Exchange, keys: trailer::config::APIConfig) -> Box<ExchangeAPI> {
-        match exchange {
+    fn get_client(exchange: Exchange, keys: trailer::config::APIConfig) -> Result<Box<ExchangeAPI>, TrailerError> {
+        Ok(match exchange {
             Exchange::Bittrex => Box::new(trailer::exchanges::bittrex::connect(&keys.api_key, &keys.secret_key)),
             Exchange::Binance => Box::new(trailer::exchanges::binance::connect(&keys.api_key, &keys.secret_key)),
             Exchange::Kucoin  => Box::new(trailer::exchanges::kucoin::connect(&keys.api_key, &keys.secret_key)),
-        }
+            _ => { return Err(TrailerError::missing_exchange_adaptor(&exchange.to_string())); },
+        })
     };
 
     if let Some(arg_exchange) = args.arg_exchange {
         // user supplied a specific exchange.
         let exchange_keys = &conf.exchange[&arg_exchange.to_string()];
-        clients.push(get_client(arg_exchange, exchange_keys.clone()));
+        clients.push(get_client(arg_exchange, exchange_keys.clone())?);
     } else {
         // try to use all exchanges in the config.
         for (exchange, config) in conf.exchange {
             match exchange.parse::<Exchange>() {
                 Ok(e) => {
-                    clients.push(get_client(e, config));
+                    clients.push(get_client(e, config)?);
                 },
                 Err(e) => { return Err(TrailerError::missing_exchange_adaptor(&exchange)) },
             };
@@ -103,14 +113,13 @@ pub fn run_docopt() -> Result<String, TrailerError> {
     for client in clients {
 
         if args.cmd_funds {
-            if args.flag_verbose { println!("getting funds...") };
             let mut funds = client.funds()?;
 
-            if args.flag_sort_by_value {
+            //if args.flag_sort_by_value {
                 funds.alts.sort_by(|a, b|
                     (b.value_in_btc.unwrap_or(0.0) * b.amount)
-                        .partial_cmp(&(&a.value_in_btc.unwrap_or(0.0) * &a.amount)).unwrap())
-            }
+                        .partial_cmp(&(&a.value_in_btc.unwrap_or(0.0) * &a.amount)).unwrap());
+            //}
 
             ::display::title_bar(&format!("\n{} Balance", client.display()));
             ::display::show_funds(funds);
@@ -118,30 +127,51 @@ pub fn run_docopt() -> Result<String, TrailerError> {
 
         if args.cmd_balances {
             if args.flag_verbose { println!("getting balances...") };
-            ::display::show_balances(client.balances()?);
+            return Ok(client.balances()?.into_iter().map(|asset|
+                ::display::asset::row(asset)).collect::<Vec<String>>().join("\n"));
+        }
+
+        if args.cmd_buy || args.cmd_sell {
+            let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
+            let amount = args.arg_amount.ok_or(TrailerError::missing_argument("amount"))?;
+            let price = args.arg_price.ok_or(TrailerError::missing_argument("price"))?;
+
+            if let Some(stoploss) = args.flag_sl {
+                println!("added stoploss: {}", price * stoploss);
+            }
+
+            if let Some(slip) = args.flag_slip {
+                println!("added slip: {}", slip);
+            }
+
+            return Ok(format!("buy: {:?}", (symbol, amount, price)));
         }
 
         if args.cmd_orders {
-            println!("getting open orders...");
-            ::display::show_orders(client.open_orders()?);
+            return Ok(client.open_orders()?.into_iter().map({ |order|
+                ::display::order::row(order)
+            }).collect::<Vec<String>>().join(""))
         }
 
         if args.cmd_past_orders {
-            if args.flag_verbose { println!("getting past orders...") };
             if let Some(symbol) = args.arg_symbol.clone() {
-                ::display::show_orders(client.past_trades_for(&symbol)?);
+                for order in client.past_trades_for(&symbol)? {
+                    return Ok(::display::order::row(order));
+                }
             } else {
-                ::display::show_orders(client.past_orders()?);
+                for order in client.past_orders()? {
+                    return Ok(::display::order::row(order));
+                }
             }
         }
 
         if args.cmd_prices {
             if args.flag_verbose { println!("getting prices...") };
-            let prices = client.prices()?;
-
-            println!("{:?}", prices);
-
-            for price in prices { ::display::show_price(price); }
+            let mut prices = client.prices()?;
+            
+            return Ok(
+                prices.iter_mut().map({|price|
+                    ::display::display_price((price.0.to_string(), *price.1))}).collect::<Vec<String>>().join(""));
         }
 
         if args.cmd_price {
@@ -149,17 +179,23 @@ pub fn run_docopt() -> Result<String, TrailerError> {
             let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
             let price = client.price(&symbol)?;
 
-            ::display::show_price((symbol, price));
+            return Ok(::display::display_price((symbol, price)));
         }
 
         if args.cmd_stop {
             let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
             let amount = args.arg_amount.ok_or(TrailerError::missing_argument("amount"))?;
-            let price = args.arg_price.ok_or(TrailerError::missing_argument("price"))?;
+            // let price = args.arg_price.ok_or(TrailerError::missing_argument("price"))?;
 
-            if args.cmd_buy || args.cmd_sell {
-                println!("stop loss/gain");
-            }
+            let price = if let Some(price) = args.arg_price {
+                price
+            } else {
+                let p = client.price_for_symbol(&symbol).unwrap_or(0.0);
+                println!("price: {:?}", p);
+                ::input::get_f64(p)?
+            };
+
+            return Ok(stop::stop(&symbol, amount, price, args.cmd_loss));
         }
 
         if args.cmd_b {
@@ -196,6 +232,42 @@ pub fn run_docopt() -> Result<String, TrailerError> {
 
         }
 
+        if args.cmd_evs {
+            let pairs = args.arg_pairs.clone().ok_or(TrailerError::missing_argument("pairs"))?;
+            let is_compact = args.flag_compact;
+
+            return Ok(position::positions(client, pairs, is_compact)?);
+        }
+
+        if args.cmd_positions {
+            let funds = client.funds()?;
+            let is_compact = args.flag_compact;
+
+            let pairs = funds.alts.into_iter().map(|fund| format!("{}BTC", fund.symbol)).collect();
+
+            return Ok(position::positions(client, pairs, is_compact)?);
+
+
+            // let btc_price = client.btc_price()?;
+
+            // for balance in funds.alts {
+            //     let price = client.price(&format!("{}BTC", balance.symbol))?;
+            //     let orders = trailer::models::average_orders(client.past_trades_for(&format!("{}BTC", balance.symbol))?);
+            //     let positions = trailer::models::Position::calculate(orders, price, btc_price, Some(balance.amount));
+
+            //     if let Some(last_position) = positions.last() {
+            //         println!("{}", ::display::position::row_compact(last_position.clone()));
+            //     } else {
+            //         if args.flag_verbose { println!("could not find position for: {}", balance.symbol); }
+            //     }
+
+            //     let acc_positions = trailer::models::PositionAccumulated::calculate(positions);
+            //     for acc_position in acc_positions {
+            //         println!("{}", ::display::position_accumulated::row(acc_position));
+            //     }
+            // }
+        }
+
         if args.cmd_ev {
             if args.flag_verbose { println!("evaluating trades...") };
 
@@ -216,10 +288,23 @@ pub fn run_docopt() -> Result<String, TrailerError> {
                 processed_orders = processed_orders.into_iter().rev().take(args.flag_limit).collect::<Vec<Order>>().into_iter().rev().collect();
             };
 
-            let positions = trailer::models::Position::calculate(processed_orders, &symbol, price, btc_price);
-            ::display::show_positions(positions, args.flag_hide_losers);
+            let symbol_qty = if let Some(sq) = client.funds()?.alts.iter().find(|c|c.symbol == symbol) {
+                Some(sq.amount)
+            } else { None };
 
-            // evaluate_trades(symbol, processed_orders, price, btc_price, args.flag_hide_losers)?;
+            let positions = trailer::models::Position::calculate(processed_orders, price, btc_price, symbol_qty);
+
+            let acc_positions = trailer::models::PositionAccumulated::calculate(positions.clone());
+            if !args.flag_compact { println!("{}", ::display::position_accumulated::row_header()) };
+            for acc_position in acc_positions {
+                println!("{}", ::display::position_accumulated::row(acc_position));
+            }
+
+            // if args.flag_compact {
+            //     positions.into_iter().for_each(|p| println!("{}", ::display::position::row_compact(p)));
+            // } else {
+            //     positions.into_iter().for_each(|p| println!("{}", ::display::position::row(p)));
+            // }
         }
 
         if args.cmd_rsi {
@@ -249,12 +334,11 @@ pub fn run_docopt() -> Result<String, TrailerError> {
             trade_position(symbol, symbol_qty, orders, price, btc_price)?;
         }
 
-        if args.cmd_pos {
-            let pairs = args.arg_pairs.clone().ok_or(TrailerError::missing_argument("pairs"))?;
-
+        if args.cmd_rsis {
             use colored::*;
-
             if args.flag_verbose { println!("fetching rsi...") };
+
+            let pairs = args.arg_pairs.clone().ok_or(TrailerError::missing_argument("pairs"))?;
 
             for pair in pairs {
                 let rsi_15m  = rsi(client.chart_data(&pair, "15m")?);
@@ -282,41 +366,8 @@ pub fn rsi(prices: Vec<trailer::models::Candlestick>) -> Vec<f64> {
 
 pub fn trade_position(symbol: String, symbol_qty: f64, orders: Vec<trailer::models::Order>, price: f64, btc_price: f64) -> Result<(), TrailerError> {
     use colored::*;
-    let mut symbol_balance = symbol_qty;
-    let mut btc_balance = 0.0;
-
-    // enum TradePosition {
-    //     Entry(EntryPosition),
-    //     Exit(ExitPosition),
-    // };
-
-    // struct EntryPosition {
-    //     cost: f64,
-    // };
-
-    // struct ExitPosition {
-    //     profit: f64,
-    // }
-
-    // // we work backwards from the current balance as there could be missing figures.
-    // for order in orders.iter().rev() {
-    //     println!("position: bal: {}", symbol_balance);
-    //     match order.order_type {
-    //         trailer::models::TradeType::Buy => {
-    //             // println!("{} +{} {} for {:.2} btc. balance: ( btc: {}, sym: {} )", "BUY ".green(), order.qty, order.symbol, order.qty * order.price, btc_balance, symbol_balance);
-    //             println!("{} {}, cost: {}", "BUY ".green(), order.qty, order.qty * order.price);
-    //             btc_balance -= order.qty * order.price;
-    //             symbol_balance -= order.qty;
-    //         },
-    //         trailer::models::TradeType::Sell => {
-    //             // println!("{} -{} {} for {:.2} btc. balance: ( btc: {}, sym: {} )", "SELL".red(), order.qty, order.symbol, order.qty * order.price, btc_balance, symbol_balance);
-    //             btc_balance += order.qty * order.price;
-    //             symbol_balance += order.qty;
-    //             println!("{} {}, profit: {}", "SELL".red(), order.qty, order.qty * order.price);
-    //         },
-    //     }
-    // }
-
+    let symbol_balance = symbol_qty;
+    let btc_balance = 0.0;
     let mut last_price = orders.first().unwrap().price;
 
     println!("{:8}{:<12}{:<16}{:<8}{:<16}{:<16}", "type", "qty", "price", "btc_price", "profit", "profit_usd");
@@ -340,86 +391,5 @@ pub fn trade_position(symbol: String, symbol_qty: f64, orders: Vec<trailer::mode
     }
 
     println!("assumed initial bal: {}", symbol_balance);
-
-    // println!("\nbalance:\n\tCOIN {}\n\tBTC  {}", symbol_balance, btc_balance);
-
     Ok(())
 }
-
-// pub fn evaluate_trades(symbol: String, orders: Vec<trailer::models::Order>, price: f64, btc_price: f64, hide_losers: bool) -> Result<(), TrailerError> {
-//     use colored::*;
-//     use ::display::colored_number;
-
-//     let positions = trailer::models::Position::calculate(orders, &symbol, price, btc_price);
-
-//     ::display::title_bar(&format!("{}", symbol.yellow()));
-
-//     ::display::show_positions(positions);
-
-//     println!("{:12}{:<12}{:<16}{:<16}{:<16}{:<16}{:<16}{:<16}{:<8}",
-//         "trade_type", "cost_btc", "qty", "sale_price", "cur_price_btc", "cur_price_usd", "p_profit_btc", "p_profit_usd", "% change");
-
-//     trailer::models::PositionSum::calculate(positions.clone());
-
-//     for position in positions {
-//         let potential_profit_usd = position.potential_profit_btc * btc_price;
-
-//         if hide_losers && position.potential_profit_btc <= 0.0 { continue; }
-
-//         println!("{trade_type:<12}{cost_btc:<12}{order_amount:<16}{sale_price:<16}{price:<16}{cost_usd:<16}{potential_profit_btc:<16}{potential_profit_usd:<16}{percent_change:<8}",
-//             trade_type                  = position.trade_type.colored_string(),
-//             cost_btc                    = format!("{:.2}",  position.cost_btc),
-//             order_amount                = format!("{:.2}",  position.qty),
-//             sale_price                  = format!("{:.8}",  position.sale_price),
-//             price                       = format!("{:.8}",  price),
-//             cost_usd                    = format!("${:.2}", position.cost_btc * btc_price),
-//             potential_profit_btc        = colored_number(position.potential_profit_btc, format!("{:>11.8}", position.potential_profit_btc)),
-//             potential_profit_usd        = colored_number(potential_profit_usd,          format!("${:.2}", potential_profit_usd)),
-//             percent_change              = colored_number(position.potential_profit_percent,      format!("{:.2}%", position.potential_profit_percent)));
-//     }
-
-//     Ok(())
-// }
-
-// pub fn _evaluate_trades(symbol: String, orders: Vec<trailer::models::Order>, price: f64, btc_price: f64) -> Result<(), TrailerError> {
-//     use colored::*;
-//     use trailer::models::{ TradeType };
-
-//     ::display::title_bar(&format!("{}", symbol.yellow()));
-
-//     println!("{:8}{:<8}{:<16}{:<16}{:<16}{:<16}{:<16}{:<16}{:<8}",
-//         "type", "btc", "qty", "sale_price", "cur_price_btc", "cur_price_usd", "uprofit", "uprofit usd", "% change");
-
-//     for order in orders {
-//         let cost_btc = order.qty * order.price;
-//         let cost_usd = (price * order.qty) * btc_price;
-//         let percent_change = 100. - 100. / order.price * price;
-
-//         let (profit, buy_type) = match order.order_type {
-//             TradeType::Buy => {(
-//                 ((order.qty * price) - cost_btc),
-//                 ("BUY".green())
-//             )},
-//             TradeType::Sell => {(
-//                 (cost_btc - (order.qty * price)),
-//                 ("SELL".red())
-//             )},
-//         };
-
-//         let profit_usd = profit * btc_price;
-
-//         use ::display::colored_number;
-//         println!("{buy_type:<8}{cost_btc:<8}{order_amount:<16}{order_price:<16}{price:<16}{cost_usd:<16}{profit:<16}{profit_usd:<16}{percent_change:<8}",
-//             buy_type        = buy_type,
-//             cost_btc        = format!("{:.2}", cost_btc),
-//             order_amount    = format!("{:.2}", order.qty),
-//             order_price     = format!("{:.8}", order.price),
-//             price           = format!("{:.8}", price),
-//             cost_usd        = format!("${:.2}", cost_usd),
-//             profit          = colored_number(profit,            format!("{:>11.8}", profit)),
-//             profit_usd      = colored_number(profit_usd,        format!("${:.2}", profit_usd)),
-//             percent_change  = colored_number(percent_change,    format!("{:.2}%", percent_change)));
-//     }
-
-//     Ok(())
-// }
