@@ -6,16 +6,13 @@ use trailer::models::*;
 use super::colored_number;
 
 pub fn row_header() -> String {
-    format!("{symbol:12}{trade_type:6}{pos_size:22}{percent_change:40}{sale_price:16}{price:16}{cost_usd:16}{balance:16}{profit:16}",
+    format!("{symbol:12}{trade_type:6}{pos_size:35}{profit_loss:40}{sale_price:16}",
         symbol = "symbol",
         trade_type = "type",
         pos_size = "size",
-        percent_change = "% change",
+        profit_loss = "p/l",
         sale_price = "sale price",
-        price = "cur price",
-        cost_usd = "cost usd",
-        balance = "balance",
-        profit = "profit")
+    )
 }
 
 pub fn row(position: PositionAccumulated) -> String {
@@ -29,20 +26,19 @@ pub fn row(position: PositionAccumulated) -> String {
 
     let p = position.position;
 
-    format!("{symbol:12}{trade_type:<6}{pos_size:<22}{percent_change:<40}{sale_price:<16}{price:<16}{cost_usd:<16}{balance:<16}{profit:<16}",
+    format!("{symbol:12}{trade_type:<6}{pos_size:<35}{profit_loss:<40}{sale_price:<16}",
         symbol                      = p.symbol,
         trade_type                  = p.trade_type.colored_string(),
-        pos_size                    = format!("{:.2} ({:.2} btc)", p.qty, p.cost_btc),
-        percent_change              = colored_number(
+        pos_size                    = format!("{:.2} ({:.2} btc, ${:.2})", p.qty, p.cost_btc, p.cost_usd),
+        profit_loss                 = colored_number(
                                         p.potential_profit_percent,
                                         format!("{:.2}% (${:.2}, {:.8} btc)", p.potential_profit_percent, p.potential_profit_usd, p.potential_profit_btc)),
         sale_price                  = format!("{:.8}",  p.sale_price),
-        price                       = format!("{:.8}",  p.current_price),
-        cost_usd                    = format!("${:.2}", p.cost_usd),
-        balance                     = p.balance,
-        profit                      = colored_number(
-                                        position.unrealised_pnl,
-                                        format!("{:.3} btc", position.unrealised_pnl)))
+        // balance                     = p.balance,
+        // profit                      = colored_number(
+        //                                 position.unrealised_pnl,
+        //                                 format!("{:.3} btc", position.unrealised_pnl))
+        )
 
     // format!("{symbol:12}{trade_type:<12}{profit:<16}",
     //     symbol        = position.position.symbol.yellow(),

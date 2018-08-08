@@ -49,39 +49,31 @@ impl ExchangeAPI for BinanceAPI {
 
     fn funds(&self) -> Result<Funds, TrailerError> {
         let balances = self.balances()?;
-        let prices = self.prices()?;
+        // let prices = self.prices()?;
         let mut btc = balances.clone().into_iter().find(|c| c.symbol == "BTC");
         let usdt = balances.clone().into_iter().find(|c| c.symbol == "USDT");
 
         let alts_all:Vec<Asset> = balances.clone().into_iter().filter(|c| c.symbol != "USDT" && c.symbol != "BTC").collect();
         let mut alts:Vec<Asset> = alts_all.into_iter().filter(|c| c.amount > 0.9).collect();
 
-        let btc_price = self.btc_price()?;
+        // let btc_price = self.btc_price()?;
 
-        // assign a price to btc if it exists.
-        if let Some(ref mut b) = btc {
-            b.value_in_btc = Some(1.0);
-            b.value_in_usd = Some(btc_price);
-        }
+        // // assign a price to btc if it exists.
+        // if let Some(ref mut b) = btc {
+        //     b.value_in_btc = Some(1.0);
+        //     b.value_in_usd = Some(btc_price);
+        // }
         
         // add prices
-        for mut alt in alts.iter_mut() {
-            alt.value_in_btc = prices.get(&format!("{}{}", alt.symbol, "BTC")).cloned();
-        }
+        // for mut alt in alts.iter_mut() {
+        //     alt.value_in_btc = prices.get(&format!("{}{}", alt.symbol, "BTC")).cloned();
+        // }
 
-        // sum total prices
-        // let total_usd_price:f64 = alts.iter().map(|a| a.value_in_usd.unwrap_or(0.0) * a.amount).sum();
-        // let total_btc_price:f64 = alts.iter().map(|a| a.value_in_btc.unwrap_or(0.0) * a.amount).sum() + btc.unwrap().value_in_btc.unwrap_or(0.0);
-
-        let funds = Funds {
+        Ok(Funds {
             btc:                btc,
             fiat:               balances.clone().into_iter().filter(|c| c.symbol == "USDT").collect(),
             alts:               alts,
-            total_value_in_usd: 0.0,
-            total_value_in_btc: 0.0,
-        }.calculate_totals();
-
-        Ok(funds)
+        })
     }
 
     /// Simple list of balances
@@ -94,8 +86,8 @@ impl ExchangeAPI for BinanceAPI {
                 amount: balance.free.parse::<f64>().unwrap() + balance.locked.parse::<f64>().unwrap(),
                 locked: balance.locked.parse::<f64>().unwrap(),
                 exchange: Exchange::Binance,
-                value_in_btc: None,
-                value_in_usd: None,
+                // value_in_btc: None,
+                // value_in_usd: None,
             }
         }).filter(|b| b.amount > 0.0).collect())
     }
@@ -131,6 +123,10 @@ impl ExchangeAPI for BinanceAPI {
         let result = self.account.limit_sell(symbol, amount, price)?;
         println!("{:?}", result);
         Ok(())
+    }
+
+    fn stop_loss(&self, symbol: &str, amount: f64, stop_price: f64, limit_price: f64) -> Result<(), TrailerError> {
+        Err(TrailerError::unsupported())
     }
 
     fn open_orders(&self) -> Result<Vec<Order>, TrailerError> {

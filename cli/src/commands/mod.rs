@@ -4,6 +4,7 @@
 use trailer;
 use trailer::exchanges::*;
 use trailer::error::*;
+use trailer::presenters::*;
 
 use docopt::Docopt;
 
@@ -22,10 +23,10 @@ Usage:
     trade <exchange> (buy|sell) [<amount>] [<price>] [--slip=<num>] [--sl=<num>] <symbol>
     trade <exchange> stop (loss|gain) <symbol> [<amount>] [<price>]
     trade <exchange> b <symbol>
-    trade <exchange> ev <symbol> [--group] [--limit=<num>] [--hide-losers] [--compact]
+    trade <exchange> ev <symbol> [--group] [--limit=<num>] [--hide-losers] [--compact] [--historic]
     trade <exchange> rsi <symbol>
-    trade <exchange> pl <symbol>
     trade <exchange> rsis <pairs>...
+    trade <exchange> pl <symbol>
     trade <exchange> evs [--compact] <pairs>...
     trade <exchange> positions
 
@@ -74,6 +75,7 @@ struct Args {
     flag_compact: bool,
     flag_sl: Option<f64>,
     flag_slip: Option<f64>,
+    flag_historic: bool,
 }
 
 pub fn run_docopt() -> Result<String, TrailerError> {
@@ -113,16 +115,17 @@ pub fn run_docopt() -> Result<String, TrailerError> {
     for client in clients {
 
         if args.cmd_funds {
-            let mut funds = client.funds()?;
+            let mut prices = client.prices()?;
+            let mut funds = FundsPresenter::new(client.funds()?, prices);
 
             //if args.flag_sort_by_value {
-                funds.alts.sort_by(|a, b|
-                    (b.value_in_btc.unwrap_or(0.0) * b.amount)
-                        .partial_cmp(&(&a.value_in_btc.unwrap_or(0.0) * &a.amount)).unwrap());
+                funds.alts.sort_by(|a, b| b.value_in_btc.partial_cmp(&a.value_in_btc).expect("order failed"));
+                    // (b.value_in_btc * b.amount)
+                    //     .partial_cmp(&(&a.value_in_btc * &a.amount)).unwrap());
             //}
 
-            ::display::title_bar(&format!("\n{} Balance", client.display()));
-            ::display::show_funds(funds);
+            ::display::title_bar(&format!("{} Balance", client.display()));
+            ::display::funds::show_funds(funds);
         }
 
         if args.cmd_balances {
@@ -184,18 +187,7 @@ pub fn run_docopt() -> Result<String, TrailerError> {
 
         if args.cmd_stop {
             let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
-            let amount = args.arg_amount.ok_or(TrailerError::missing_argument("amount"))?;
-            // let price = args.arg_price.ok_or(TrailerError::missing_argument("price"))?;
-
-            let price = if let Some(price) = args.arg_price {
-                price
-            } else {
-                let p = client.price_for_symbol(&symbol).unwrap_or(0.0);
-                println!("price: {:?}", p);
-                ::input::get_f64(p)?
-            };
-
-            return Ok(stop::stop(&symbol, amount, price, args.cmd_loss));
+            return stop::stop(client, &symbol, args.arg_amount, args.arg_price, args.cmd_loss);
         }
 
         if args.cmd_b {
@@ -242,63 +234,59 @@ pub fn run_docopt() -> Result<String, TrailerError> {
         if args.cmd_positions {
             let funds = client.funds()?;
             let is_compact = args.flag_compact;
-
             let pairs = funds.alts.into_iter().map(|fund| format!("{}BTC", fund.symbol)).collect();
+            let mut output_buffer = String::new();
 
-            return Ok(position::positions(client, pairs, is_compact)?);
+            if !args.flag_compact { println!("{}", &::display::position_accumulated::row_header()); }
+            output_buffer.push_str(&position::positions(client, pairs, is_compact)?);
 
-
-            // let btc_price = client.btc_price()?;
-
-            // for balance in funds.alts {
-            //     let price = client.price(&format!("{}BTC", balance.symbol))?;
-            //     let orders = trailer::models::average_orders(client.past_trades_for(&format!("{}BTC", balance.symbol))?);
-            //     let positions = trailer::models::Position::calculate(orders, price, btc_price, Some(balance.amount));
-
-            //     if let Some(last_position) = positions.last() {
-            //         println!("{}", ::display::position::row_compact(last_position.clone()));
-            //     } else {
-            //         if args.flag_verbose { println!("could not find position for: {}", balance.symbol); }
-            //     }
-
-            //     let acc_positions = trailer::models::PositionAccumulated::calculate(positions);
-            //     for acc_position in acc_positions {
-            //         println!("{}", ::display::position_accumulated::row(acc_position));
-            //     }
-            // }
+            return Ok(output_buffer);
         }
 
         if args.cmd_ev {
-            if args.flag_verbose { println!("evaluating trades...") };
-
             let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
-            let orders = client.past_trades_for(&symbol)?;
-            let price = client.price(&symbol)?;
-            let btc_price = client.btc_price()?;
+            let is_compact = args.flag_compact;
+            let mut symbols = Vec::new();
+            symbols.push(symbol.clone());
 
-            // --group
-            let mut processed_orders = match args.flag_group {
-                true => trailer::models::average_orders(orders.clone()),
-                false => trailer::models::compact_orders(orders.clone()),
-            };
-
-            // --limit=<num>
-            if args.flag_limit > 0 {
-                use trailer::models::Order;
-                processed_orders = processed_orders.into_iter().rev().take(args.flag_limit).collect::<Vec<Order>>().into_iter().rev().collect();
-            };
-
-            let symbol_qty = if let Some(sq) = client.funds()?.alts.iter().find(|c|c.symbol == symbol) {
-                Some(sq.amount)
-            } else { None };
-
-            let positions = trailer::models::Position::calculate(processed_orders, price, btc_price, symbol_qty);
-
-            let acc_positions = trailer::models::PositionAccumulated::calculate(positions.clone());
-            if !args.flag_compact { println!("{}", ::display::position_accumulated::row_header()) };
-            for acc_position in acc_positions {
-                println!("{}", ::display::position_accumulated::row(acc_position));
+            if args.flag_historic {
+                return Ok(position::position_historic(client, &symbol)?);
+            } else {
+                return Ok(position::positions(client, symbols, is_compact)?);
             }
+
+
+
+            // if args.flag_verbose { println!("evaluating trades...") };
+
+            // let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
+            // let orders = client.past_trades_for(&symbol)?;
+            // let price = client.price(&symbol)?;
+            // let btc_price = client.btc_price()?;
+
+            // // --group
+            // let mut processed_orders = match args.flag_group {
+            //     true => trailer::models::average_orders(orders.clone()),
+            //     false => trailer::models::compact_orders(orders.clone()),
+            // };
+
+            // // --limit=<num>
+            // if args.flag_limit > 0 {
+            //     use trailer::models::Order;
+            //     processed_orders = processed_orders.into_iter().rev().take(args.flag_limit).collect::<Vec<Order>>().into_iter().rev().collect();
+            // };
+
+            // let symbol_qty = if let Some(sq) = client.funds()?.alts.iter().find(|c|c.symbol == symbol) {
+            //     Some(sq.amount)
+            // } else { None };
+
+            // let positions = trailer::models::Position::calculate(processed_orders, price, btc_price, symbol_qty);
+
+            // let acc_positions = trailer::models::PositionAccumulated::calculate(positions.clone());
+            // if !args.flag_compact { println!("{}", ::display::position_accumulated::row_header()) };
+            // for acc_position in acc_positions {
+            //     println!("{}", ::display::position_accumulated::row(acc_position));
+            // }
 
             // if args.flag_compact {
             //     positions.into_iter().for_each(|p| println!("{}", ::display::position::row_compact(p)));

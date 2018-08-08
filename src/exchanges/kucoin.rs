@@ -41,8 +41,6 @@ impl ExchangeAPI for KucoinAPI {
             btc:    balances.clone().into_iter().find(|c| c.symbol == "BTC"),
             fiat:   balances.clone().into_iter().filter(|c| c.symbol == "USDT").collect(),
             alts:   balances.into_iter().filter(|c| c.symbol != "USDT" && c.symbol != "BTC").collect(),
-            total_value_in_usd: 33.0,
-            total_value_in_btc: 44.0,
         })
     }
 
@@ -54,8 +52,6 @@ impl ExchangeAPI for KucoinAPI {
                 amount:         balance.balance,
                 locked:         balance.locked,
                 exchange:       Exchange::Kucoin,
-                value_in_btc:   None,
-                value_in_usd:   None,
             }
         }).collect())
     }
@@ -85,6 +81,10 @@ impl ExchangeAPI for KucoinAPI {
     }
 
     fn limit_sell(&self, symbol: &str, amount: f64, price: f64) -> Result<(), TrailerError> {
+        Err(TrailerError::unsupported())
+    }
+
+    fn stop_loss(&self, symbol: &str, amount: f64, stop_price: f64, limit_price: f64) -> Result<(), TrailerError> {
         Err(TrailerError::unsupported())
     }
 

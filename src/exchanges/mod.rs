@@ -14,13 +14,14 @@ pub trait ExchangeAPI {
     fn prices(&self)                -> Result<Prices, TrailerError>;
     fn limit_buy(&self, symbol: &str, amount: f64, price: f64) -> Result<(), TrailerError>;
     fn limit_sell(&self, symbol: &str, amount: f64, price: f64) -> Result<(), TrailerError>;
+    fn stop_loss(&self, symbol: &str, amount: f64, stop_price: f64, limit_price: f64) -> Result<(), TrailerError>;
     fn open_orders(&self)           -> Result<Vec<Order>, TrailerError>;
     fn past_orders(&self)           -> Result<Vec<Order>, TrailerError>;
     fn past_trades_for(&self, symbol: &str) -> Result<Vec<Order>, TrailerError>;
     fn chart_data(&self, symbol: &str, interval: &str) -> Result<Vec<Candlestick>, TrailerError>;
     fn btc_price(&self)             -> Result<f64, TrailerError>;
 
-    fn price_for_symbol(&self, symbol: &str) -> Result<f64, TrailerError> {
+    fn amount_for_symbol(&self, symbol: &str) -> Result<f64, TrailerError> {
         Ok(self.funds()?.alts.iter().find(|c|c.symbol == symbol)
             .ok_or(TrailerError::generic(&format!("symbol not in funds: {}", symbol)))?.amount)
     }

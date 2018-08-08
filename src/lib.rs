@@ -14,8 +14,9 @@ extern crate serde;
 extern crate ratelimit;
 extern crate itertools;
 
-pub mod exchanges;
-pub mod socket;
-pub mod models;
 pub mod config;
 pub mod error;
+pub mod exchanges;
+pub mod models;
+pub mod presenters;
+pub mod socket;

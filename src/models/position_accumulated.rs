@@ -26,6 +26,33 @@ pub struct PositionAccumulated {
 // }
 
 impl PositionAccumulated {
+    pub fn calc(orders: Vec<Order>) -> Vec<PositionAccumulated> {
+        let mut balance = 0.0;
+
+        // println!("lskdjflkjd");
+
+        for order in orders {
+
+            match order.order_type {
+                TradeType::Buy => {
+                    balance += order.qty;
+                },
+                TradeType::Sell => {
+                    balance -= order.qty;
+                },
+            };
+
+            balance += match order.order_type {
+                TradeType::Buy => order.qty,
+                TradeType::Sell => -order.qty,
+            };
+            // println!("balance: {}", balance);
+
+        };
+
+        Vec::new()
+    }
+
     pub fn calculate(positions: Vec<Position>) -> Vec<PositionAccumulated> {
 
         positions.iter().enumerate().map(|(_i, position)| {

@@ -48,8 +48,6 @@ impl ExchangeAPI for BittrexAPI {
             btc:    balances.clone().into_iter().find(|c| c.symbol == "BTC"),
             fiat:   balances.clone().into_iter().filter(|c| c.symbol == "USDT").collect(),
             alts:   alts,
-            total_value_in_usd: 33.0,
-            total_value_in_btc: 44.0,
         })
     }
 
@@ -62,8 +60,6 @@ impl ExchangeAPI for BittrexAPI {
                 amount: balance.balance as f64,
                 locked: (balance.balance - balance.available) as f64,
                 exchange: Exchange::Bittrex,
-                value_in_btc: None,
-                value_in_usd: None,
             }
         }).collect())
     }
@@ -99,6 +95,10 @@ impl ExchangeAPI for BittrexAPI {
         let result = self.client.sell_limit(symbol, amount, price)?;
         println!("{}", result);
         Ok(())
+    }
+
+    fn stop_loss(&self, symbol: &str, amount: f64, stop_price: f64, limit_price: f64) -> Result<(), TrailerError> {
+        Err(TrailerError::unsupported())
     }
 
     fn open_orders(&self) -> Result<Vec<Order>, TrailerError> {

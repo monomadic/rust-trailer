@@ -6,7 +6,7 @@ use trailer::models::*;
 use super::colored_number;
 
 pub fn row(position: Position) -> String {
-    format!("{symbol:12}{trade_type:<12}{pos_size:<22}{percent_change:<40}{sale_price:<16}{price:<16}{cost_usd:<16}",
+    format!("{symbol:12}{trade_type:<12}{pos_size:<22}{percent_change:<40}{sale_price:<16}",
         symbol                      = position.symbol,
         trade_type                  = position.trade_type.colored_string(),
         pos_size                    = format!("{:.2} ({:.2} btc)", position.qty, position.cost_btc),
@@ -14,8 +14,6 @@ pub fn row(position: Position) -> String {
                                         position.potential_profit_percent,
                                         format!("{:.2}% (${:.2}, {:.8} btc)", position.potential_profit_percent, position.potential_profit_usd, position.potential_profit_btc)),
         sale_price                  = format!("{:.8}",  position.sale_price),
-        price                       = format!("{:.8}",  position.current_price),
-        cost_usd                    = format!("${:.2}", position.cost_usd),
     )
 }
 
