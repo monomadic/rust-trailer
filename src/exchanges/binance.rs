@@ -38,6 +38,9 @@ impl MarketEventHandler for BinanceWebSocketHandler {
 
 impl ExchangeAPI for BinanceAPI {
     fn display(&self) -> String { "Binance".to_string() }
+    fn btc_symbol(&self) -> String { "BTC".into() }
+    fn usd_symbol(&self) -> String { "USDT".into() }
+
     fn btc_price(&self) -> Result<f64, TrailerError> { Ok(self.price("BTCUSDT").or(Err(TrailerError::generic("could not find the BTCUSDT symbol.")))?) }
 
     // basic (unenriched) list of
@@ -46,6 +49,7 @@ impl ExchangeAPI for BinanceAPI {
 
     //     Ok(balances)
     // }
+
 
     fn funds(&self) -> Result<Funds, TrailerError> {
         let balances = self.balances()?;

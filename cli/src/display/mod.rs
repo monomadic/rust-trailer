@@ -18,7 +18,8 @@ pub fn error(error: TrailerError) {
 
 pub fn title_bar(msg: &str) {
     println!("\n{}", msg);
-    println!("====================================================================");
+    // println!("====================================================================");
+    println!("●▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬●");
 }
 
 pub fn colored_number(num: f64, formatted_string: String) -> ColoredString {
@@ -40,6 +41,22 @@ pub fn colored_balance(num: f64) -> String {
     } else {
         format!("{:16.8}{ }", num.to_string().red(), "".white())
     }
+}
+
+pub fn display_fiat(num: f64) -> String {
+    // format!("${}", decimal_commas(format!("{:.2}", num)))
+    format!("${:.2}", num)
+}
+
+pub fn colored_fiat(num: f64) -> String {
+    colored_number(num, display_fiat(num)).to_string()
+}
+
+fn decimal_commas(s: String) -> String {
+    let bytes: Vec<_> = s.bytes().rev().collect();
+    let chunks: Vec<_> = bytes.chunks(3).map(|chunk| ::std::str::from_utf8(chunk).unwrap()).collect();
+    let result: Vec<_> = chunks.join(",").bytes().rev().collect();
+    String::from_utf8(result).unwrap()
 }
 
 pub fn show_balances(balances: Vec<Asset>) {

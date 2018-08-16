@@ -2,7 +2,7 @@
 use trailer::error::TrailerError;
 use colored::Colorize;
 
-pub fn stop(client: Box<::trailer::exchanges::ExchangeAPI>, symbol: &str, arg_amount: Option<f64>, arg_price: Option<f64>, is_stop_loss: bool) -> Result<String, TrailerError> {
+pub fn stop(client: ::std::sync::Arc<::trailer::exchanges::ExchangeAPI>, symbol: &str, arg_amount: Option<f64>, arg_price: Option<f64>, is_stop_loss: bool) -> Result<String, TrailerError> {
     println!("set stop for: {}", symbol.yellow());
 
     let amount = if let Some(amount) = arg_amount {

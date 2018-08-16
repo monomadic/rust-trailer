@@ -35,6 +35,9 @@ pub fn connect(api_key: &str, secret_key: &str) -> BittrexAPI {
 impl ExchangeAPI for BittrexAPI {
     
     fn display(&self) -> String { "Bittrex".to_string() }
+    fn btc_symbol(&self) -> String { "BTC".into() }
+    fn usd_symbol(&self) -> String { "USDT".into() }
+
     fn btc_price(&self) -> Result<f64, TrailerError> { Ok(self.price("USD-BTC")?) }
 
     fn funds(&self) -> Result<Funds, TrailerError> {

@@ -31,6 +31,8 @@ impl From<KucoinError> for TrailerError {
 
 impl ExchangeAPI for KucoinAPI {
     fn display(&self) -> String { "Kucoin".into() }
+    fn btc_symbol(&self) -> String { "BTC".into() }
+    fn usd_symbol(&self) -> String { "USDT".into() }
     fn btc_price(&self) -> Result<f64, TrailerError> { Ok(self.price("BTCUSDT")?) }
 
     fn funds(&self) -> Result<Funds, TrailerError> {

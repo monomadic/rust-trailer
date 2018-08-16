@@ -10,11 +10,12 @@ use docopt::Docopt;
 
 mod stop;
 mod position;
+mod buy_sell;
 
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 const USAGE: &'static str = "
 Usage:
-    trade [<exchange>] funds [--sort-by-value]
+    trade [<exchange>] funds [--sort-by-name]
     trade [<exchange>] balances
     trade [<exchange>] orders
     trade <exchange> past-orders [<symbol>]
@@ -70,13 +71,15 @@ struct Args {
     flag_group: bool,
     flag_limit: usize,
     flag_verbose: bool,
-    flag_sort_by_value: bool,
+    flag_sort_by_name: bool,
     flag_hide_losers: bool,
     flag_compact: bool,
     flag_sl: Option<f64>,
     flag_slip: Option<f64>,
     flag_historic: bool,
 }
+
+use std::sync::Arc;
 
 pub fn run_docopt() -> Result<String, TrailerError> {
     let args:Args = Docopt::new(USAGE)
@@ -87,11 +90,13 @@ pub fn run_docopt() -> Result<String, TrailerError> {
     let conf = trailer::config::read(args.flag_verbose)?;
     let mut clients = Vec::new();
 
-    fn get_client(exchange: Exchange, keys: trailer::config::APIConfig) -> Result<Box<ExchangeAPI>, TrailerError> {
+
+
+    fn get_client(exchange: Exchange, keys: trailer::config::APIConfig) -> Result<Arc<ExchangeAPI+Send+Sync>, TrailerError> {
         Ok(match exchange {
-            Exchange::Bittrex => Box::new(trailer::exchanges::bittrex::connect(&keys.api_key, &keys.secret_key)),
-            Exchange::Binance => Box::new(trailer::exchanges::binance::connect(&keys.api_key, &keys.secret_key)),
-            Exchange::Kucoin  => Box::new(trailer::exchanges::kucoin::connect(&keys.api_key, &keys.secret_key)),
+            Exchange::Bittrex => Arc::new(trailer::exchanges::bittrex::connect(&keys.api_key, &keys.secret_key)),
+            Exchange::Binance => Arc::new(trailer::exchanges::binance::connect(&keys.api_key, &keys.secret_key)),
+            Exchange::Kucoin  => Arc::new(trailer::exchanges::kucoin::connect(&keys.api_key, &keys.secret_key)),
             _ => { return Err(TrailerError::missing_exchange_adaptor(&exchange.to_string())); },
         })
     };
@@ -116,13 +121,16 @@ pub fn run_docopt() -> Result<String, TrailerError> {
 
         if args.cmd_funds {
             let mut prices = client.prices()?;
-            let mut funds = FundsPresenter::new(client.funds()?, prices);
+            // let btc_price = *prices.get(&client.btc_symbol()).unwrap_or(&0.0);
+            let btc_price = *prices.get("BTCUSDT").expect("btc price not found."); // fix this with exchange agnostic value
 
-            //if args.flag_sort_by_value {
+            let mut funds = FundsPresenter::new(client.funds()?, prices, btc_price);
+
+            if args.flag_sort_by_name {
                 funds.alts.sort_by(|a, b| b.value_in_btc.partial_cmp(&a.value_in_btc).expect("order failed"));
-                    // (b.value_in_btc * b.amount)
-                    //     .partial_cmp(&(&a.value_in_btc * &a.amount)).unwrap());
-            //}
+            } else {
+                funds.alts.sort_by(|a, b| b.value_in_btc.partial_cmp(&a.value_in_btc).expect("order failed"));
+            }
 
             ::display::title_bar(&format!("{} Balance", client.display()));
             ::display::funds::show_funds(funds);
@@ -194,34 +202,7 @@ pub fn run_docopt() -> Result<String, TrailerError> {
             let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
             let price = client.price(&symbol)?;
 
-            println!("{}:", symbol);
-            println!("current price {}\n", price);
-
-            print!("price ({}): ", price);
-            let buy_price = ::input::get_f64(price)?;
-            if buy_price > price {
-                println!("WARNING: your buy price is higher than the current price!");
-                print!("\ncontinue with purchase? (y/N) ");
-                match ::input::get_confirmation()? {
-                    false => { return Err(TrailerError::generic("transaction aborted.")) },
-                    _ => (),
-                }
-            }
-
-            print!("amount in btc (0.1): ");
-            let btc_amount = ::input::get_f64(10.)?;
-            let amount = (btc_amount / buy_price).round();
-
-            println!("\ncreating limit order of {} {} at {}. total price: {:.8}.", amount, symbol, buy_price, price * amount);
-            print!("\ncontinue with purchase? (y/N) ");
-            match ::input::get_confirmation()? {
-                true => {
-                    println!("\npurchasing...");
-                    let _ = client.limit_buy(&symbol, amount, buy_price);
-                },
-                false => println!("\nno purchase made."),
-            }
-
+            return Ok(buy_sell::buy_sell(client, &symbol, price)?);
         }
 
         if args.cmd_evs {
@@ -235,6 +216,7 @@ pub fn run_docopt() -> Result<String, TrailerError> {
             let funds = client.funds()?;
             let is_compact = args.flag_compact;
             let pairs = funds.alts.into_iter().map(|fund| format!("{}BTC", fund.symbol)).collect();
+
             let mut output_buffer = String::new();
 
             if !args.flag_compact { println!("{}", &::display::position_accumulated::row_header()); }
@@ -297,8 +279,6 @@ pub fn run_docopt() -> Result<String, TrailerError> {
 
         if args.cmd_rsi {
             use colored::*;
-
-            if args.flag_verbose { println!("fetching rsi...") };
             let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
 
             let rsi_15m  = rsi(client.chart_data(&symbol, "15m")?);
@@ -324,21 +304,41 @@ pub fn run_docopt() -> Result<String, TrailerError> {
 
         if args.cmd_rsis {
             use colored::*;
-            if args.flag_verbose { println!("fetching rsi...") };
+            use std::thread;
 
             let pairs = args.arg_pairs.clone().ok_or(TrailerError::missing_argument("pairs"))?;
+            // let mut output:Arc<Vec<String>> = Arc::new(Vec::new());
+
+            let mut threads = Vec::new();
 
             for pair in pairs {
-                let rsi_15m  = rsi(client.chart_data(&pair, "15m")?);
-                let rsi_1h   = rsi(client.chart_data(&pair, "1h")?);
-                let rsi_1d   = rsi(client.chart_data(&pair, "1d")?);
+                let client = Arc::clone(&client);
+                // let mut output = Arc::clone(&output);
 
-                println!("{pair:12}15m: {rsi_15m:<8}1h: {rsi_1h:<8}1d: {rsi_1d:<8}",
-                    pair        = pair.yellow(),
-                    rsi_15m     = ::display::colored_rsi(*rsi_15m.last().unwrap(), format!("{:.0}", rsi_15m.last().unwrap())),
-                    rsi_1h      = ::display::colored_rsi(*rsi_1h.last().unwrap(), format!("{:.0}", rsi_1h.last().unwrap())),
-                    rsi_1d      = ::display::colored_rsi(*rsi_1d.last().unwrap(), format!("{:.0}", rsi_1d.last().unwrap())));
+                threads.push(thread::spawn(move || {
+                    let rsi_15m = rsi(client.chart_data(&pair, "15m").expect("rsi to work"));
+                    let rsi_1h   = rsi(client.chart_data(&pair, "1h").expect("rsi to work"));
+                    let rsi_1d   = rsi(client.chart_data(&pair, "1d").expect("rsi to work"));
+
+                    println!("{pair:12}15m: {rsi_15m:<8}1h: {rsi_1h:<8}1d: {rsi_1d:<8}",
+                            pair        = pair.yellow(),
+                            rsi_15m     = ::display::colored_rsi(*rsi_15m.last().unwrap(), format!("{:.0}", rsi_15m.last().unwrap())),
+                            rsi_1h      = ::display::colored_rsi(*rsi_1h.last().unwrap(), format!("{:.0}", rsi_1h.last().unwrap())),
+                            rsi_1d      = ::display::colored_rsi(*rsi_1d.last().unwrap(), format!("{:.0}", rsi_1d.last().unwrap()))
+                    )
+
+                    // output.push(
+                    //     format!("{pair:12}15m: {rsi_15m:<8}1h: {rsi_1h:<8}1d: {rsi_1d:<8}",
+                    //             pair        = pair.yellow(),
+                    //             rsi_15m     = ::display::colored_rsi(*rsi_15m.last().unwrap(), format!("{:.0}", rsi_15m.last().unwrap())),
+                    //             rsi_1h      = ::display::colored_rsi(*rsi_1h.last().unwrap(), format!("{:.0}", rsi_1h.last().unwrap())),
+                    //             rsi_1d      = ::display::colored_rsi(*rsi_1d.last().unwrap(), format!("{:.0}", rsi_1d.last().unwrap()))
+                    //     )
+                    // );
+                }));
             }
+
+            for thread in threads { thread.join().expect("threading failed"); }
         }
     };
 

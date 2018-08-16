@@ -23,6 +23,10 @@ pub struct Position {
 }
 
 impl Position {
+	pub fn change_as_percent(&self) -> f64 {
+		price_percent(self.sale_price, self.current_price)
+	}
+
 	pub fn calculate(orders: Vec<Order>, current_price: f64, btc_price: f64, current_balance: Option<f64>) -> Vec<Position> {
 		let balance = current_balance.unwrap_or(0.0);
 

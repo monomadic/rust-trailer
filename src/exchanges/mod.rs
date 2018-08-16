@@ -8,6 +8,9 @@ use ::error::*;
 
 pub trait ExchangeAPI {
     fn display(&self)               -> String;
+    fn btc_symbol(&self)            -> String;
+    fn usd_symbol(&self)            -> String;
+    
     fn funds(&self)                 -> Result<Funds, TrailerError>;
     fn balances(&self)              -> Result<Vec<Asset>, TrailerError>;
     fn price(&self, symbol: &str)   -> Result<f64, TrailerError>;

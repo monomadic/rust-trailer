@@ -13,7 +13,7 @@ pub fn row(position: Position) -> String {
         percent_change              = colored_number(
                                         position.potential_profit_percent,
                                         format!("{:.2}% (${:.2}, {:.8} btc)", position.potential_profit_percent, position.potential_profit_usd, position.potential_profit_btc)),
-        sale_price                  = format!("{:.8}",  position.sale_price),
+        sale_price                  = format!("{:.8} (%{:.2})",  position.sale_price, position.change_as_percent()),
     )
 }
 
