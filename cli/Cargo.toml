@@ -10,4 +10,5 @@ serde = "^1.0"
 serde_derive = "^1.0"
 trailer = { path = "../" }
 ta = "0.1.0"
-ta-lib-wrapper = "0.1.1"
+# plotlib = "0.3.0"
+plotlib = { git = "https://github.com/milliams/plotlib.git" }

@@ -22,8 +22,47 @@ pub fn handle_request(result: Result<String, ServerError>) -> IronResult<Respons
     }
 }
 
+pub fn chart(req: &mut Request) -> Result<String, ServerError> {
+    let symbol = req.extensions.get::<::router::Router>().unwrap().find("symbol").unwrap();
+
+    Ok(format!("
+        <div class='tradingview-widget-container'>
+          <div id='tradingview_33b5f'></div>
+          <script type='text/javascript' src='https://s3.tradingview.com/tv.js'></script>
+          <script type='text/javascript'>
+          new TradingView.widget(
+            {{
+                'autosize': true,
+                'symbol': 'BINANCE:{}',
+                'interval': '15',
+                'timezone': 'Etc/UTC',
+                'theme': 'Dark',
+                'style': '1',
+                'locale': 'en',
+                'toolbar_bg': 'rgba(101, 101, 101, 1)',
+                'enable_publishing': false,
+                'hide_legend': true,
+                'studies': [
+                'MACD@tv-basicstudies',
+                'RSI@tv-basicstudies'
+                ],
+                'container_id': 'tradingview_33b5f'
+            }}
+          );
+          </script>
+        </div>
+    ", symbol))
+}
+
 pub fn funds(_req: &mut Request) -> Result<String, ServerError> {
-    // let coins = ::models::Coin::all(&db)?;
-    // let view = ::views::landing(coins)?;
-    Ok("view".to_string())
+    use trailer::exchanges::ExchangeAPI;
+    let client = ::trailer::exchanges::binance::connect("9N5duztMdrYfYg2ErhSDV837s8xfBIqF8D7mxpJTKiujvSwoIDI52UguhhkyRQBg", "OG6avXJGOeDt5Phbp150zeEgwjQZpgkXdrp8z2vwPv5bWlHuNFLrK4uAGidnpAIU");
+
+    use trailer::presenters::*;
+
+    let prices = client.prices()?;
+    let btc_price = *prices.get("BTCUSDT").expect("btc price not found."); // fix this with exchange agnostic value
+    let funds = FundsPresenter::new(client.funds()?, prices, btc_price);
+
+    ::views::funds(funds)
 }

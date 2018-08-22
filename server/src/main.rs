@@ -2,6 +2,7 @@ extern crate iron;
 extern crate router;
 extern crate staticfile;
 extern crate mount;
+#[macro_use] extern crate horrorshow;
 
 extern crate trailer;
 
@@ -10,6 +11,7 @@ use std::sync::{Arc, Mutex};
 
 mod controllers;
 mod error;
+mod views;
 
 fn main() {
     // use coinref::controllers;
@@ -28,10 +30,14 @@ fn main() {
         controllers::handle_request(controllers::funds(r))
     }, "funds");
 
+    router.get("/chart/:symbol", move |r: &mut Request| {
+        controllers::handle_request(controllers::chart(r))
+    }, "chart");
+
     // let db_coin = db.clone();
-    // router.get("/:coin", move |r: &mut Request| {
-    //     handle_request(controllers::coin::show(r, &db_coin.lock().unwrap()))
-    // }, "coin");
+    router.get("/", move |_r: &mut Request| {
+        Ok(Response::with((iron::status::Ok, ":)")))
+    }, "root");
 
     // let db_by_tag = db.clone();
     // router.get("/tag/:tag", move |r: &mut Request| {

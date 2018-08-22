@@ -293,11 +293,14 @@ pub fn run_docopt() -> Result<String, TrailerError> {
             let rsi_1h   = indicators::rsi(14, &rsi_1h);
             let rsi_1d   = indicators::rsi(14, &rsi_1d);
 
-            println!("{symbol:12}15m: {rsi_15m:<8}1h: {rsi_1h:<8}1d: {rsi_1d:<8}",
+            println!("{symbol:12} {rsi_15m:<8} | {rsi_1h:<8} | {rsi_1d:<8}",
                 symbol      = symbol.yellow(),
                 rsi_15m     = ::display::colored_rsi(*rsi_15m.last().unwrap(), format!("{:.0}", rsi_15m.last().unwrap())),
                 rsi_1h      = ::display::colored_rsi(*rsi_1h.last().unwrap(), format!("{:.0}", rsi_1h.last().unwrap())),
                 rsi_1d      = ::display::colored_rsi(*rsi_1d.last().unwrap(), format!("{:.0}", rsi_1d.last().unwrap())));
+
+
+            ::graphs::rsi::draw(rsi_15m);
         }
 
         if args.cmd_pl {
@@ -336,7 +339,7 @@ pub fn run_docopt() -> Result<String, TrailerError> {
                     let rsi_1h   = indicators::rsi(14, &rsi_1h);
                     let rsi_1d   = indicators::rsi(14, &rsi_1d);
 
-                    println!("{symbol:12}15m: {rsi_15m:<8}1h: {rsi_1h:<8}1d: {rsi_1d:<8}",
+                    println!("{symbol:12} {rsi_15m:<2} | {rsi_1h:<2} | {rsi_1d:<2}",
                         symbol      = pair.yellow(),
                         rsi_15m     = ::display::colored_rsi(*rsi_15m.last().unwrap(), format!("{:.0}", rsi_15m.last().unwrap())),
                         rsi_1h      = ::display::colored_rsi(*rsi_1h.last().unwrap(), format!("{:.0}", rsi_1h.last().unwrap())),
