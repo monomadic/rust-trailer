@@ -5,6 +5,7 @@ use trailer;
 use trailer::exchanges::*;
 use trailer::error::*;
 use trailer::presenters::*;
+use trailer::indicators;
 
 use docopt::Docopt;
 
@@ -18,7 +19,7 @@ Usage:
     trade [<exchange>] funds [--sort-by-name]
     trade [<exchange>] balances
     trade [<exchange>] orders
-    trade <exchange> past-orders [<symbol>]
+    trade <exchange> trades [<symbol>] [--group]
     trade <exchange> prices
     trade <exchange> price <symbol>
     trade <exchange> (buy|sell) [<amount>] [<price>] [--slip=<num>] [--sl=<num>] <symbol>
@@ -54,7 +55,7 @@ struct Args {
     cmd_loss: bool,
     cmd_gain: bool,
     cmd_orders: bool,
-    cmd_past_orders: bool,
+    cmd_trades: bool,
     cmd_b: bool,
     cmd_ev: bool,
     cmd_evs: bool,
@@ -164,16 +165,19 @@ pub fn run_docopt() -> Result<String, TrailerError> {
             }).collect::<Vec<String>>().join(""))
         }
 
-        if args.cmd_past_orders {
-            if let Some(symbol) = args.arg_symbol.clone() {
-                for order in client.past_trades_for(&symbol)? {
-                    return Ok(::display::order::row(order));
-                }
+        if args.cmd_trades {
+            let mut orders:Vec<::trailer::models::Order> = if let Some(symbol) = args.arg_symbol.clone() {
+                client.past_trades_for(&symbol)?
             } else {
-                for order in client.past_orders()? {
-                    return Ok(::display::order::row(order));
-                }
+                client.past_orders()?
+            };
+
+            if args.flag_group {
+                println!("grouping...");
+                orders = trailer::models::average_orders(orders.clone());
             }
+
+            return Ok(orders.into_iter().map(|order| ::display::order::row(order)).collect::<Vec<String>>().join(""))
         }
 
         if args.cmd_prices {
@@ -219,7 +223,7 @@ pub fn run_docopt() -> Result<String, TrailerError> {
 
             let mut output_buffer = String::new();
 
-            if !args.flag_compact { println!("{}", &::display::position_accumulated::row_header()); }
+            // if !args.flag_compact { println!("{}", &::display::position_accumulated::row_header()); }
             output_buffer.push_str(&position::positions(client, pairs, is_compact)?);
 
             return Ok(output_buffer);
@@ -281,9 +285,13 @@ pub fn run_docopt() -> Result<String, TrailerError> {
             use colored::*;
             let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
 
-            let rsi_15m  = rsi(client.chart_data(&symbol, "15m")?);
-            let rsi_1h   = rsi(client.chart_data(&symbol, "1h")?);
-            let rsi_1d   = rsi(client.chart_data(&symbol, "1d")?);
+            let rsi_15m:Vec<f64> = client.chart_data(&symbol, "15m")?.into_iter().map(|price| price.close_price).collect();
+            let rsi_1h:Vec<f64>  = client.chart_data(&symbol, "1h")?.into_iter().map(|price| price.close_price).collect();
+            let rsi_1d:Vec<f64> = client.chart_data(&symbol, "1d")?.into_iter().map(|price| price.close_price).collect();
+
+            let rsi_15m = indicators::rsi(14, &rsi_15m);
+            let rsi_1h   = indicators::rsi(14, &rsi_1h);
+            let rsi_1d   = indicators::rsi(14, &rsi_1d);
 
             println!("{symbol:12}15m: {rsi_15m:<8}1h: {rsi_1h:<8}1d: {rsi_1d:<8}",
                 symbol      = symbol.yellow(),
@@ -316,16 +324,35 @@ pub fn run_docopt() -> Result<String, TrailerError> {
                 // let mut output = Arc::clone(&output);
 
                 threads.push(thread::spawn(move || {
-                    let rsi_15m = rsi(client.chart_data(&pair, "15m").expect("rsi to work"));
-                    let rsi_1h   = rsi(client.chart_data(&pair, "1h").expect("rsi to work"));
-                    let rsi_1d   = rsi(client.chart_data(&pair, "1d").expect("rsi to work"));
 
-                    println!("{pair:12}15m: {rsi_15m:<8}1h: {rsi_1h:<8}1d: {rsi_1d:<8}",
-                            pair        = pair.yellow(),
-                            rsi_15m     = ::display::colored_rsi(*rsi_15m.last().unwrap(), format!("{:.0}", rsi_15m.last().unwrap())),
-                            rsi_1h      = ::display::colored_rsi(*rsi_1h.last().unwrap(), format!("{:.0}", rsi_1h.last().unwrap())),
-                            rsi_1d      = ::display::colored_rsi(*rsi_1d.last().unwrap(), format!("{:.0}", rsi_1d.last().unwrap()))
-                    )
+                    use colored::*;
+                    // let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
+
+                    let rsi_15m:Vec<f64> = client.chart_data(&pair, "15m").expect("rsi to work").into_iter().map(|price| price.close_price).collect();
+                    let rsi_1h:Vec<f64>  = client.chart_data(&pair, "1h").expect("rsi to work").into_iter().map(|price| price.close_price).collect();
+                    let rsi_1d:Vec<f64> = client.chart_data(&pair, "1d").expect("rsi to work").into_iter().map(|price| price.close_price).collect();
+
+                    let rsi_15m = indicators::rsi(14, &rsi_15m);
+                    let rsi_1h   = indicators::rsi(14, &rsi_1h);
+                    let rsi_1d   = indicators::rsi(14, &rsi_1d);
+
+                    println!("{symbol:12}15m: {rsi_15m:<8}1h: {rsi_1h:<8}1d: {rsi_1d:<8}",
+                        symbol      = pair.yellow(),
+                        rsi_15m     = ::display::colored_rsi(*rsi_15m.last().unwrap(), format!("{:.0}", rsi_15m.last().unwrap())),
+                        rsi_1h      = ::display::colored_rsi(*rsi_1h.last().unwrap(), format!("{:.0}", rsi_1h.last().unwrap())),
+                        rsi_1d      = ::display::colored_rsi(*rsi_1d.last().unwrap(), format!("{:.0}", rsi_1d.last().unwrap())));
+
+
+                    // let rsi_15m = rsi(client.chart_data(&pair, "15m").expect("rsi to work"));
+                    // let rsi_1h   = rsi(client.chart_data(&pair, "1h").expect("rsi to work"));
+                    // let rsi_1d   = rsi(client.chart_data(&pair, "1d").expect("rsi to work"));
+
+                    // println!("{pair:12}15m: {rsi_15m:<8}1h: {rsi_1h:<8}1d: {rsi_1d:<8}",
+                    //         pair        = pair.yellow(),
+                    //         rsi_15m     = ::display::colored_rsi(*rsi_15m.last().unwrap(), format!("{:.0}", rsi_15m.last().unwrap())),
+                    //         rsi_1h      = ::display::colored_rsi(*rsi_1h.last().unwrap(), format!("{:.0}", rsi_1h.last().unwrap())),
+                    //         rsi_1d      = ::display::colored_rsi(*rsi_1d.last().unwrap(), format!("{:.0}", rsi_1d.last().unwrap()))
+                    // )
 
                     // output.push(
                     //     format!("{pair:12}15m: {rsi_15m:<8}1h: {rsi_1h:<8}1d: {rsi_1d:<8}",
@@ -345,12 +372,17 @@ pub fn run_docopt() -> Result<String, TrailerError> {
     Ok(if args.flag_verbose { "done.".to_string() } else { "".to_string() })
 }
 
-pub fn rsi(prices: Vec<trailer::models::Candlestick>) -> Vec<f64> {
-    use ta::indicators::RelativeStrengthIndex;
-    use ta::Next;
-    let mut rsi = RelativeStrengthIndex::new(14).unwrap();
-    prices.iter().map(|price| rsi.next(price.close_price)).collect()
-}
+// pub fn rsi(prices: Vec<trailer::models::Candlestick>) -> Vec<f64> {
+//     // use ta::indicators::RelativeStrengthIndex;
+//     // use ta::Next;
+
+//     // let mut rsi = RelativeStrengthIndex::new(14).unwrap();
+//     // prices.iter().map(|price| rsi.next(price.close_price)).collect()
+
+//     use ta_lib_wrapper::{TA_Integer, TA_Real, TA_RSI,  TA_RetCode};
+
+//     let close_prices = 
+// }
 
 pub fn trade_position(symbol: String, symbol_qty: f64, orders: Vec<trailer::models::Order>, price: f64, btc_price: f64) -> Result<(), TrailerError> {
     use colored::*;

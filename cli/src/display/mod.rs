@@ -10,7 +10,7 @@ pub mod asset;
 pub mod funds;
 pub mod order;
 pub mod position;
-pub mod position_accumulated;
+// pub mod position_accumulated;
 
 pub fn error(error: TrailerError) {
     println!("{}", format!("Error: {}", error.message).red());
@@ -141,40 +141,40 @@ pub fn display_price(price: Price) -> String {
     format!("{}\t{}", price.0, price.1)
 }
 
-pub fn show_positions(positions: Vec<Position>, hide_losers: bool) {
-    // title_bar(&format!("{}", symbol.yellow()));
+// pub fn show_positions(positions: Vec<Position>, hide_losers: bool) {
+//     // title_bar(&format!("{}", symbol.yellow()));
 
-    println!("{:12}{:<12}{:<16}{:<16}{:<16}{:<16}{:<16}{:<16}{:<8}",
-        "trade_type", "cost_btc", "qty", "sale_price", "cur_price_btc", "cur_price_usd", "p_profit_btc", "p_profit_usd", "% change");
+//     println!("{:12}{:<12}{:<16}{:<16}{:<16}{:<16}{:<16}{:<16}{:<8}",
+//         "trade_type", "cost_btc", "qty", "sale_price", "cur_price_btc", "cur_price_usd", "p_profit_btc", "p_profit_usd", "% change");
 
-    for position in positions {
-        if hide_losers && position.potential_profit_btc <= 0.0 { continue; }
-        show_position(position);
-    }
-}
+//     for position in positions {
+//         if hide_losers && position.potential_profit_btc <= 0.0 { continue; }
+//         show_position(position);
+//     }
+// }
 
-pub fn show_positions_compact(positions: Vec<Position>, hide_losers: bool) {
-    for position in positions {
-        println!("{trade_type:<12}{symbol:12}{cost_btc:<12}{percent_change:<8}",
-            trade_type                  = position.trade_type.colored_string(),
-            symbol                      = position.symbol,
-            cost_btc                    = format!("{:.2}",  position.cost_btc),
-            percent_change              = colored_number(position.potential_profit_percent,     format!("{:.2}% (${:.2})", position.potential_profit_percent, position.potential_profit_usd)));
-    }
-}
+// pub fn show_positions_compact(positions: Vec<Position>, hide_losers: bool) {
+//     for position in positions {
+//         println!("{trade_type:<12}{symbol:12}{cost_btc:<12}{percent_change:<8}",
+//             trade_type                  = position.trade_type.colored_string(),
+//             symbol                      = position.symbol,
+//             cost_btc                    = format!("{:.2}",  position.cost_btc),
+//             percent_change              = colored_number(position.potential_profit_percent,     format!("{:.2}% (${:.2})", position.potential_profit_percent, position.potential_profit_usd)));
+//     }
+// }
 
-pub fn show_position(position: Position) {
-    println!("{trade_type:<12}{cost_btc:<12}{order_amount:<16}{sale_price:<16}{price:<16}{cost_usd:<16}{potential_profit_btc:<16}{potential_profit_usd:<16}{percent_change:<8}",
-        trade_type                  = position.trade_type.colored_string(),
-        cost_btc                    = format!("{:.2}",  position.cost_btc),
-        order_amount                = format!("{:.2}",  position.qty),
-        sale_price                  = format!("{:.8}",  position.sale_price),
-        price                       = format!("{:.8}",  position.current_price),
-        cost_usd                    = format!("${:.2}", position.cost_btc),
-        potential_profit_btc        = colored_number(position.potential_profit_btc,         format!("{:>11.8}", position.potential_profit_btc)),
-        potential_profit_usd        = colored_number(position.potential_profit_usd,         format!("${:.2}", position.potential_profit_usd)),
-        percent_change              = colored_number(position.potential_profit_percent,     format!("{:.2}%", position.potential_profit_percent)));
-}
+// pub fn show_position(position: Position) {
+//     println!("{trade_type:<12}{cost_btc:<12}{order_amount:<16}{sale_price:<16}{price:<16}{cost_usd:<16}{potential_profit_btc:<16}{potential_profit_usd:<16}{percent_change:<8}",
+//         trade_type                  = position.trade_type.colored_string(),
+//         cost_btc                    = format!("{:.2}",  position.cost_btc),
+//         order_amount                = format!("{:.2}",  position.qty),
+//         sale_price                  = format!("{:.8}",  position.sale_price),
+//         price                       = format!("{:.8}",  position.current_price),
+//         cost_usd                    = format!("${:.2}", position.cost_btc),
+//         potential_profit_btc        = colored_number(position.potential_profit_btc,         format!("{:>11.8}", position.potential_profit_btc)),
+//         potential_profit_usd        = colored_number(position.potential_profit_usd,         format!("${:.2}", position.potential_profit_usd)),
+//         percent_change              = colored_number(position.potential_profit_percent,     format!("{:.2}%", position.potential_profit_percent)));
+// }
 
 // pub fn show_position(symbol: String, orders: Vec<trailer::models::Order>, price: f64, btc_price: f64, hide_losers: bool) -> Result<(), TrailerError> {
 //     use colored::*;

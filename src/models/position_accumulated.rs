@@ -3,10 +3,18 @@ use models::*;
 #[derive(Debug, Clone)]
 pub struct PositionAccumulated {
     pub position:           Position,
+    // pub state:              PositionState,
     pub size:               f64,
     pub entry_price:        f64,
     pub unrealised_pnl:     f64,
     pub realised_pnl:       f64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum PositionState {
+    Open,
+    Partial,
+    Closed,
 }
 
 // fn add_position(pos_acc: PositionAccumulated, pos: Position) -> PositionAccumulated {
@@ -26,6 +34,10 @@ pub struct PositionAccumulated {
 // }
 
 impl PositionAccumulated {
+    pub fn total_potential_profit_usd(positions: Vec<Self>) -> f64 {
+        positions.into_iter().map(|p| p.position.potential_profit_usd).sum()
+    }
+
     pub fn calc(orders: Vec<Order>) -> Vec<PositionAccumulated> {
         let mut balance = 0.0;
 

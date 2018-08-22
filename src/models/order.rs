@@ -18,26 +18,36 @@ impl Order {
             // order_type: TradeType,
         }
     }
+
+    pub fn compact(orders: Vec<Order>) -> Vec<Order> {
+        // println!("{:?}", group_orders(orders.clone()));
+        // group_orders(orders).first().unwrap_or(&Vec::new()).clone()
+        compact_orders(orders)
+    }
 }
 
 // reduce all orders with same price together (technically different orders from the order book)
 pub fn compact_orders(orders: Vec<Order>) -> Vec<Order> {
     let mut grouped_orders = Vec::new();
-    let mut current_order = orders.first().unwrap().clone();
 
-    for order in orders.clone() {
-        if order.price == current_order.price {
-            current_order.qty += order.qty;
-        } else {
-            grouped_orders.push(current_order.clone());
-            current_order = order.clone();
+    if let Some(first_order) = orders.first() {
+        let mut current_order = first_order.clone();
+
+        for order in orders.clone() {
+            if order.price == current_order.price {
+                current_order.qty += order.qty;
+            } else {
+                grouped_orders.push(current_order.clone());
+                current_order = order.clone();
+            }
         }
+        grouped_orders.push(current_order.clone());
     }
-    grouped_orders.push(current_order.clone());
     grouped_orders
 }
 
-// group/average orders into a grouped vector
+// group/average orders into a grouped vector by buy/sell type
+// used by average orders - not really too useful directly.
 pub fn group_orders(orders: Vec<Order>) -> Vec<Vec<Order>> {
     let mut grouped_orders = Vec::new();
     let mut current_order_group = Vec::new();
@@ -67,7 +77,10 @@ pub fn average_orders(orders: Vec<Order>) -> Vec<Order> {
 pub fn average_order(orders: Vec<Order>) -> Order {
     let mut first_order = orders.first().unwrap().clone();
     let total_qty = orders.iter().map(|o| o.qty).sum();
-    let average_price = orders.iter().map(|o| o.price).sum::<f64>() / orders.len() as f64;
+    let total_price = orders.iter().map(|o| o.qty * o.price).sum::<f64>();
+    let average_price = total_price / total_qty as f64;
+
+    // println!("total qty: {}, total price: {}, average_price: {}", total_qty, total_price, average_price);
 
     first_order.price   = average_price;
     first_order.qty     = total_qty;

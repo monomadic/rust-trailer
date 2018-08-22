@@ -33,12 +33,12 @@ pub fn row(position: PositionAccumulated) -> String {
         profit_loss                 = colored_number(
                                         p.potential_profit_percent,
                                         format!("{:.2}% (${:.2}, {:.8} btc)", p.potential_profit_percent, p.potential_profit_usd, p.potential_profit_btc)),
-        sale_price                  = format!("{:.8}",  p.sale_price),
+        sale_price                  = format!("{:.8} (%{:.2})",  p.sale_price, p.change_as_percent()),
         // balance                     = p.balance,
         // profit                      = colored_number(
         //                                 position.unrealised_pnl,
         //                                 format!("{:.3} btc", position.unrealised_pnl))
-        )
+    )
 
     // format!("{symbol:12}{trade_type:<12}{profit:<16}",
     //     symbol        = position.position.symbol.yellow(),
