@@ -69,14 +69,14 @@ pub fn funds(_req: &mut Request) -> Result<String, ServerError> {
 
 pub fn positions(_req: &mut Request) -> Result<String, ServerError> {
     use trailer::exchanges::ExchangeAPI;
-    let client = ::trailer::exchanges::binance::connect("9N5duztMdrYfYg2ErhSDV837s8xfBIqF8D7mxpJTKiujvSwoIDI52UguhhkyRQBg", "OG6avXJGOeDt5Phbp150zeEgwjQZpgkXdrp8z2vwPv5bWlHuNFLrK4uAGidnpAIU");
     use trailer::presenters::*;
+
+    let client = ::trailer::exchanges::binance::connect("9N5duztMdrYfYg2ErhSDV837s8xfBIqF8D7mxpJTKiujvSwoIDI52UguhhkyRQBg", "OG6avXJGOeDt5Phbp150zeEgwjQZpgkXdrp8z2vwPv5bWlHuNFLrK4uAGidnpAIU");
     let prices = client.prices()?;
     let btc_price = client.btc_price()?;
-    // let mut output_buffer = ::display::position::row_title();
-    let mut positions = Vec::new();
-
     let funds = client.funds()?;
+
+    let mut output_buffer = ::views::position::row_title();
     let pairs:Vec<String> = funds.alts.into_iter().map(|fund| format!("{}BTC", fund.symbol)).collect();
 
     for pair in pairs {
@@ -91,12 +91,12 @@ pub fn positions(_req: &mut Request) -> Result<String, ServerError> {
 
             if let Some(position) = position {
                 let presenter = PositionPresenter{ position: position, current_price: price, btc_price_in_usd: btc_price };
-                // output_buffer.push_str(&::views::funds::text(presenter));
-                positions.push(::views::position::row(presenter));
+                output_buffer.push_str(&::views::position::row(presenter));
+                // positions.push(::views::position::row(presenter));
             }
         }
     };
 
-    ::views::layout("positions", format!("<pre>{}</pre>", positions.join("")))
+    ::views::layout("positions", format!("<pre>{}</pre>", output_buffer))
 }
 

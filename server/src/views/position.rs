@@ -2,6 +2,18 @@ use trailer::models::*;
 use trailer::presenters::*;
 use views::*;
 
+pub fn row_title() -> String {
+    format!("{symbol:12}{state:<9}{size:<32}{change:<40}{profit_loss:<40}{entry_price:<16}{exit_price:<16}\n",
+        symbol = "symbol",
+        state = "state",
+        size = "size",
+        change = "change",
+        profit_loss = "p/l",
+        entry_price = "entry",
+        exit_price = "exit",
+    )
+}
+
 pub fn row(presenter: PositionPresenter) -> String {
     let position = presenter.position.clone();
 

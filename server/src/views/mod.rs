@@ -25,7 +25,7 @@ pub fn layout(title: &str, content: String) -> Result<String, ServerError> {
                 link(rel="stylesheet", href="https://fonts.googleapis.com/css?family=Roboto+Mono");
                 link(rel="icon", type="image/png", href="/static/favicon.png");
             }
-            body(class="desktop-constrain padding-horizontal-m", style="background-color: #222; color: white;") {: Raw(content) }
+            body(class="desktop-constrain padding-horizontal-m", style="background-color: #111; color: white;") {: Raw(content) }
         }
     }.into_string()?)
 }
