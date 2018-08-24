@@ -66,3 +66,37 @@ pub fn funds(_req: &mut Request) -> Result<String, ServerError> {
 
     ::views::funds(funds)
 }
+
+pub fn positions(_req: &mut Request) -> Result<String, ServerError> {
+    use trailer::exchanges::ExchangeAPI;
+    let client = ::trailer::exchanges::binance::connect("9N5duztMdrYfYg2ErhSDV837s8xfBIqF8D7mxpJTKiujvSwoIDI52UguhhkyRQBg", "OG6avXJGOeDt5Phbp150zeEgwjQZpgkXdrp8z2vwPv5bWlHuNFLrK4uAGidnpAIU");
+    use trailer::presenters::*;
+    let prices = client.prices()?;
+    let btc_price = client.btc_price()?;
+    // let mut output_buffer = ::display::position::row_title();
+    let mut positions = Vec::new();
+
+    let funds = client.funds()?;
+    let pairs:Vec<String> = funds.alts.into_iter().map(|fund| format!("{}BTC", fund.symbol)).collect();
+
+    for pair in pairs {
+        let orders = client.past_trades_for(&pair);
+
+        if let Ok(orders) = orders {  // ok to swallow error here. not critical.
+            let price = *(prices.get(&pair).unwrap_or(&0.0));
+
+            let grouped_orders = ::trailer::models::average_orders(orders.clone());
+            // let positions = trailer::models::Position::calculate(grouped_orders, price, btc_price, None);
+            let position = ::trailer::models::Position::new(grouped_orders);
+
+            if let Some(position) = position {
+                let presenter = PositionPresenter{ position: position, current_price: price, btc_price_in_usd: btc_price };
+                // output_buffer.push_str(&::views::funds::text(presenter));
+                positions.push(::views::position::row(presenter));
+            }
+        }
+    };
+
+    ::views::layout("positions", format!("<pre>{}</pre>", positions.join("")))
+}
+

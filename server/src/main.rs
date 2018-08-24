@@ -30,6 +30,10 @@ fn main() {
         controllers::handle_request(controllers::funds(r))
     }, "funds");
 
+    router.get("/positions", move |r: &mut Request| {
+        controllers::handle_request(controllers::positions(r))
+    }, "positions");
+
     router.get("/chart/:symbol", move |r: &mut Request| {
         controllers::handle_request(controllers::chart(r))
     }, "chart");
