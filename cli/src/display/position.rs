@@ -19,16 +19,6 @@ pub fn row_title() -> String {
 }
 
 pub fn row(presenter: PositionPresenter) -> String {
-    // format!("{symbol:12}{trade_type:<12}{pos_size:<22}{percent_change:<40}{sale_price:<16}",
-    //     symbol                      = position.symbol,
-    //     trade_type                  = position.trade_type.colored_string(),
-    //     pos_size                    = format!("{:.2} ({:.2} btc)", position.qty, position.cost_btc),
-    //     percent_change              = colored_number(
-    //                                     position.potential_profit_percent,
-    //                                     format!("{:.2}% (${:.2}, {:.8} btc)", position.potential_profit_percent, position.potential_profit_usd, position.potential_profit_btc)),
-    //     sale_price                  = format!("{:.8} (%{:.2})",  position.sale_price, position.change_as_percent()),
-    // )
-
     let position = presenter.position.clone();
 
     format!("{symbol:12}{state:<9}{size:<32}{change:<40}{profit_loss:<40}{entry_price:<16.8}{exit_price:<16}\n",

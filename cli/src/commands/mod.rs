@@ -26,11 +26,10 @@ Usage:
     trade <exchange> stop (loss|gain) <symbol> [<amount>] [<price>]
     trade <exchange> b <symbol>
     trade <exchange> ev <symbol> [--group] [--limit=<num>] [--hide-losers] [--compact] [--historic]
-    trade <exchange> rsi <symbol>
-    trade <exchange> rsis <pairs>...
+    trade <exchange> rsi <pairs>...
     trade <exchange> pl <symbol>
     trade <exchange> evs [--compact] <pairs>...
-    trade <exchange> positions
+    trade <exchange> positions [--open] [<pairs>...]
 
 Options:
     --verbose   show detailed output
@@ -61,7 +60,6 @@ struct Args {
     cmd_evs: bool,
     cmd_rsi: bool,
     cmd_pl: bool,
-    cmd_rsis: bool,
     cmd_positions: bool,
 
     arg_symbol: Option<String>,
@@ -78,6 +76,7 @@ struct Args {
     flag_sl: Option<f64>,
     flag_slip: Option<f64>,
     flag_historic: bool,
+    flag_open: bool,
 }
 
 use std::sync::Arc;
@@ -91,8 +90,6 @@ pub fn run_docopt() -> Result<String, TrailerError> {
     let conf = trailer::config::read(args.flag_verbose)?;
     let mut clients = Vec::new();
 
-
-
     fn get_client(exchange: Exchange, keys: trailer::config::APIConfig) -> Result<Arc<ExchangeAPI+Send+Sync>, TrailerError> {
         Ok(match exchange {
             Exchange::Bittrex => Arc::new(trailer::exchanges::bittrex::connect(&keys.api_key, &keys.secret_key)),
@@ -104,21 +101,23 @@ pub fn run_docopt() -> Result<String, TrailerError> {
 
     if let Some(arg_exchange) = args.arg_exchange {
         // user supplied a specific exchange.
-        let exchange_keys = &conf.exchange[&arg_exchange.to_string()];
-        clients.push(get_client(arg_exchange, exchange_keys.clone())?);
+        let config = &conf.exchange[&arg_exchange.to_string()];
+        clients.push(
+            (get_client(arg_exchange, config.clone())?, config.clone())
+        );
     } else {
         // try to use all exchanges in the config.
         for (exchange, config) in conf.exchange {
             match exchange.parse::<Exchange>() {
                 Ok(e) => {
-                    clients.push(get_client(e, config)?);
+                    clients.push((get_client(e, config.clone())?, config.clone()));
                 },
                 Err(e) => { return Err(TrailerError::missing_exchange_adaptor(&exchange)) },
             };
         };
     }
 
-    for client in clients {
+    for (client, config) in clients {
 
         if args.cmd_funds {
             let mut prices = client.prices()?;
@@ -217,14 +216,22 @@ pub fn run_docopt() -> Result<String, TrailerError> {
         }
 
         if args.cmd_positions {
-            let funds = client.funds()?;
-            let is_compact = args.flag_compact;
-            let pairs = funds.alts.into_iter().map(|fund| format!("{}BTC", fund.symbol)).collect();
+            let pairs:Vec<String> = args.arg_pairs.unwrap_or({ // grab positions from args, or...
+                if args.flag_open { // if --open
+                    let funds = client.funds()?; // wallet.
+                    funds.alts.into_iter().map(|fund| format!("{}BTC", fund.symbol)).collect()
+                } else {
+                    config.positions.unwrap_or({ // config, or...
+                        let funds = client.funds()?; // wallet.
+                        funds.alts.into_iter().map(|fund| format!("{}BTC", fund.symbol)).collect()
+                    })
+                }
+            });
 
             let mut output_buffer = String::new();
 
             // if !args.flag_compact { println!("{}", &::display::position_accumulated::row_header()); }
-            output_buffer.push_str(&position::positions(client, pairs, is_compact)?);
+            output_buffer.push_str(&position::positions(client, pairs, args.flag_compact)?);
 
             return Ok(output_buffer);
         }
@@ -281,27 +288,27 @@ pub fn run_docopt() -> Result<String, TrailerError> {
             // }
         }
 
-        if args.cmd_rsi {
-            use colored::*;
-            let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
+        // if args.cmd_rsi {
+        //     use colored::*;
+        //     let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
 
-            let rsi_15m:Vec<f64> = client.chart_data(&symbol, "15m")?.into_iter().map(|price| price.close_price).collect();
-            let rsi_1h:Vec<f64>  = client.chart_data(&symbol, "1h")?.into_iter().map(|price| price.close_price).collect();
-            let rsi_1d:Vec<f64> = client.chart_data(&symbol, "1d")?.into_iter().map(|price| price.close_price).collect();
+        //     let rsi_15m:Vec<f64> = client.chart_data(&symbol, "15m")?.into_iter().map(|price| price.close_price).collect();
+        //     let rsi_1h:Vec<f64>  = client.chart_data(&symbol, "1h")?.into_iter().map(|price| price.close_price).collect();
+        //     let rsi_1d:Vec<f64> = client.chart_data(&symbol, "1d")?.into_iter().map(|price| price.close_price).collect();
 
-            let rsi_15m = indicators::rsi(14, &rsi_15m);
-            let rsi_1h   = indicators::rsi(14, &rsi_1h);
-            let rsi_1d   = indicators::rsi(14, &rsi_1d);
+        //     let rsi_15m = indicators::rsi(14, &rsi_15m);
+        //     let rsi_1h   = indicators::rsi(14, &rsi_1h);
+        //     let rsi_1d   = indicators::rsi(14, &rsi_1d);
 
-            println!("{symbol:12} {rsi_15m:<8} | {rsi_1h:<8} | {rsi_1d:<8}",
-                symbol      = symbol.yellow(),
-                rsi_15m     = ::display::colored_rsi(*rsi_15m.last().unwrap(), format!("{:.0}", rsi_15m.last().unwrap())),
-                rsi_1h      = ::display::colored_rsi(*rsi_1h.last().unwrap(), format!("{:.0}", rsi_1h.last().unwrap())),
-                rsi_1d      = ::display::colored_rsi(*rsi_1d.last().unwrap(), format!("{:.0}", rsi_1d.last().unwrap())));
+        //     println!("{symbol:12} {rsi_15m:<8} | {rsi_1h:<8} | {rsi_1d:<8}",
+        //         symbol      = symbol.yellow(),
+        //         rsi_15m     = ::display::colored_rsi(*rsi_15m.last().unwrap(), format!("{:.0}", rsi_15m.last().unwrap())),
+        //         rsi_1h      = ::display::colored_rsi(*rsi_1h.last().unwrap(), format!("{:.0}", rsi_1h.last().unwrap())),
+        //         rsi_1d      = ::display::colored_rsi(*rsi_1d.last().unwrap(), format!("{:.0}", rsi_1d.last().unwrap())));
 
 
-            ::graphs::rsi::draw(rsi_15m);
-        }
+        //     ::graphs::rsi::draw(rsi_15m);
+        // }
 
         if args.cmd_pl {
             let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
@@ -313,8 +320,8 @@ pub fn run_docopt() -> Result<String, TrailerError> {
             trade_position(symbol, symbol_qty, orders, price, btc_price)?;
         }
 
-        if args.cmd_rsis {
-            use colored::*;
+        if args.cmd_rsi {
+            // use colored::*;
             use std::thread;
 
             let pairs = args.arg_pairs.clone().ok_or(TrailerError::missing_argument("pairs"))?;

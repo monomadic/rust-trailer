@@ -5,6 +5,7 @@ extern crate bittrex_api as bittrex;
 extern crate reqwest;
 extern crate kucoin;
 extern crate bitfinex;
+extern crate math;
 
 extern crate toml;
 #[macro_use]

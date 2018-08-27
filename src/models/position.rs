@@ -5,26 +5,6 @@ pub struct Position {
 	pub symbol:                 String,
 	pub buy_order:				Order,
 	pub sell_order:				Option<Order>,
-
-	// pub percent_change:			f64,
-
-	// pub change_percent:				f64,
-
-
-	// pub cost_btc:                   f64,
-	// pub cost_usd:                   f64,
-
-	// pub sale_price:                 f64,
-	// pub current_price:              f64,
-
-	// pub potential_profit_btc:       f64,
-	// pub potential_profit_percent:   f64,
-	// pub potential_profit_usd:       f64,
-
-	// pub balance:                    f64,
-	// pub held_btc:                f64,
-	// pub held_percent:            f64,
-	// pub realised_profit:         f64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -64,36 +44,43 @@ impl Position {
 		derive_state(self.buy_order.qty, self.clone().sell_order.and_then(|o| Some(o.qty)).unwrap_or(0.0))
 	}
 
-	pub fn new(orders: Vec<Order>) -> Option<Position> {
+	pub fn new(orders: Vec<Order>) -> Vec<Position> {
 		// reverse the array cause we want to work backwards.
 		// let orders = orders.into_iter().rev().collect();
 		let mut orders = Order::compact(orders);
 		// let mut orders = orders;
 		// println!("{:#?}", orders);
 
-		if let Some(last_order) = orders.pop() {
-			let (buy_order, sell_order) = match last_order.order_type {
-				TradeType::Buy => (last_order, None),
-				TradeType::Sell => {
-					if let Some(second_last_order) = orders.pop() {
-						(second_last_order, Some(last_order))
-					} else {
-						return None
-					}
-				},
+		let mut positions = Vec::new();
+
+		while orders.len() > 0 {
+			if let Some(last_order) = orders.pop() {
+				if let Some((buy_order, sell_order)) = match last_order.order_type {
+					TradeType::Buy => Some((last_order, None)),
+					TradeType::Sell => {
+						if let Some(second_last_order) = orders.pop() {
+							Some((second_last_order, Some(last_order)))
+						} else {
+							// whoops, don't know what to do here, there's just one sell order.
+							None
+						}
+					},
+				} {
+					positions.push(Position {
+						symbol:				buy_order.symbol.clone(),
+						// size:				buy_order.qty,
+						// entry_price:		buy_order.price,
+						// percent_change:		price_percent(buy_order.price, current_price),
+						buy_order:			buy_order,
+						sell_order:			sell_order,
+					})
+				}
+
 			};
+		}
 
-			return Some(Position {
-				symbol:				buy_order.symbol.clone(),
-				// size:				buy_order.qty,
-				// entry_price:		buy_order.price,
-				// percent_change:		price_percent(buy_order.price, current_price),
-				buy_order:			buy_order,
-				sell_order:			sell_order,
-			})
-		};
 
-		None
+		positions
 
 
 
@@ -165,6 +152,8 @@ impl Position {
 }
 
 pub fn derive_state(buy_qty: f64, sell_qty: f64) -> PositionState {
+	// let sell_qty = ::math::round::ceil(sell_qty, 2);
+	// let buy_qty = ::math::round::ceil(buy_qty, 2);
 	if sell_qty == 0.0 { return PositionState::Open };
 	if buy_qty == sell_qty { return PositionState::Closed };
 	if sell_qty < buy_qty { return PositionState::Partial };

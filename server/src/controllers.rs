@@ -91,7 +91,9 @@ pub fn positions(_req: &mut Request) -> Result<String, ServerError> {
 
             if let Some(position) = position {
                 let presenter = PositionPresenter{ position: position, current_price: price, btc_price_in_usd: btc_price };
-                output_buffer.push_str(&::views::position::row(presenter));
+                // if presenter.into_iter().filter(|p| p.position.state() == PositionState::Open) {
+                    output_buffer.push_str(&::views::position::row(presenter));
+                // }
                 // positions.push(::views::position::row(presenter));
             }
         }

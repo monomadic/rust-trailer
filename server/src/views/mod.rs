@@ -8,6 +8,7 @@ use trailer::presenters::*;
 
 pub mod position;
 pub mod funds;
+pub mod rsi;
 
 pub fn layout(title: &str, content: String) -> Result<String, ServerError> {
     return Ok(html! {

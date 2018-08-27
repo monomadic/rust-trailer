@@ -15,6 +15,7 @@ pub struct Config {
 pub struct APIConfig {
     pub api_key: String,
     pub secret_key: String,
+    pub positions: Option<Vec<String>>,
 }
 
 impl From<::std::io::Error> for TrailerError {
