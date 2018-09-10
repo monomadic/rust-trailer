@@ -12,11 +12,12 @@ use docopt::Docopt;
 mod stop;
 mod position;
 mod buy_sell;
+mod rsi;
 
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 const USAGE: &'static str = "
 Usage:
-    trade [<exchange>] funds [--sort-by-name]
+    trade [<exchange>] funds [--sort-by-name] [--log]
     trade [<exchange>] balances
     trade [<exchange>] orders
     trade <exchange> trades [<symbol>] [--group]
@@ -25,14 +26,12 @@ Usage:
     trade <exchange> (buy|sell) [<amount>] [<price>] [--slip=<num>] [--sl=<num>] <symbol>
     trade <exchange> stop (loss|gain) <symbol> [<amount>] [<price>]
     trade <exchange> b <symbol>
-    trade <exchange> ev <symbol> [--group] [--limit=<num>] [--hide-losers] [--compact] [--historic]
-    trade <exchange> rsi <pairs>...
-    trade <exchange> pl <symbol>
-    trade <exchange> evs [--compact] <pairs>...
-    trade <exchange> positions [--open] [<pairs>...]
+    trade <exchange> dump <symbol>
+    trade <exchange> rsi [--watch] [--all] [<pairs>...]
+    trade <exchange> positions [--watch] [--all] [<pairs>...]
 
 Options:
-    --verbose   show detailed output
+    --debug   show debug object output
 
 Exchange:
     binance
@@ -56,10 +55,7 @@ struct Args {
     cmd_orders: bool,
     cmd_trades: bool,
     cmd_b: bool,
-    cmd_ev: bool,
-    cmd_evs: bool,
     cmd_rsi: bool,
-    cmd_pl: bool,
     cmd_positions: bool,
 
     arg_symbol: Option<String>,
@@ -67,16 +63,15 @@ struct Args {
     arg_price: Option<f64>,
     arg_pairs: Option<Vec<String>>,
 
+    flag_debug: bool,
     flag_group: bool,
-    flag_limit: usize,
-    flag_verbose: bool,
+    flag_log: bool,
+    // flag_limit: usize,
     flag_sort_by_name: bool,
-    flag_hide_losers: bool,
-    flag_compact: bool,
     flag_sl: Option<f64>,
     flag_slip: Option<f64>,
-    flag_historic: bool,
-    flag_open: bool,
+    flag_watch: bool,
+    flag_all: bool,
 }
 
 use std::sync::Arc;
@@ -87,14 +82,14 @@ pub fn run_docopt() -> Result<String, TrailerError> {
         .and_then(|d| d.deserialize())
         .unwrap_or_else(|e| e.exit());
 
-    let conf = trailer::config::read(args.flag_verbose)?;
+    let conf = trailer::config::read(args.flag_debug)?;
     let mut clients = Vec::new();
 
     fn get_client(exchange: Exchange, keys: trailer::config::APIConfig) -> Result<Arc<ExchangeAPI+Send+Sync>, TrailerError> {
         Ok(match exchange {
-            Exchange::Bittrex => Arc::new(trailer::exchanges::bittrex::connect(&keys.api_key, &keys.secret_key)),
+            // Exchange::Bittrex => Arc::new(trailer::exchanges::bittrex::connect(&keys.api_key, &keys.secret_key)),
             Exchange::Binance => Arc::new(trailer::exchanges::binance::connect(&keys.api_key, &keys.secret_key)),
-            Exchange::Kucoin  => Arc::new(trailer::exchanges::kucoin::connect(&keys.api_key, &keys.secret_key)),
+            // Exchange::Kucoin  => Arc::new(trailer::exchanges::kucoin::connect(&keys.api_key, &keys.secret_key)),
             _ => { return Err(TrailerError::missing_exchange_adaptor(&exchange.to_string())); },
         })
     };
@@ -133,12 +128,16 @@ pub fn run_docopt() -> Result<String, TrailerError> {
             }
 
             ::display::title_bar(&format!("{} Balance", client.display()));
-            ::display::funds::show_funds(funds);
+            ::display::funds::show_funds(funds.clone());
+
+            if args.flag_log { ::log::log_funds(funds)? };
         }
 
         if args.cmd_balances {
-            if args.flag_verbose { println!("getting balances...") };
-            return Ok(client.balances()?.into_iter().map(|asset|
+            let balances = client.balances()?;
+            if args.flag_debug { println!("{:#?}", balances); }
+
+            return Ok(balances.into_iter().map(|asset|
                 ::display::asset::row(asset)).collect::<Vec<String>>().join("\n"));
         }
 
@@ -166,13 +165,12 @@ pub fn run_docopt() -> Result<String, TrailerError> {
 
         if args.cmd_trades {
             let mut orders:Vec<::trailer::models::Order> = if let Some(symbol) = args.arg_symbol.clone() {
-                client.past_trades_for(&symbol)?
+                client.trades_for(&symbol)?
             } else {
                 client.past_orders()?
             };
 
             if args.flag_group {
-                println!("grouping...");
                 orders = trailer::models::average_orders(orders.clone());
             }
 
@@ -180,7 +178,6 @@ pub fn run_docopt() -> Result<String, TrailerError> {
         }
 
         if args.cmd_prices {
-            if args.flag_verbose { println!("getting prices...") };
             let mut prices = client.prices()?;
             
             return Ok(
@@ -189,7 +186,6 @@ pub fn run_docopt() -> Result<String, TrailerError> {
         }
 
         if args.cmd_price {
-            if args.flag_verbose { println!("getting prices...") };
             let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
             let price = client.price(&symbol)?;
 
@@ -208,218 +204,70 @@ pub fn run_docopt() -> Result<String, TrailerError> {
             return Ok(buy_sell::buy_sell(client, &symbol, price)?);
         }
 
-        if args.cmd_evs {
-            let pairs = args.arg_pairs.clone().ok_or(TrailerError::missing_argument("pairs"))?;
-            let is_compact = args.flag_compact;
-
-            return Ok(position::positions(client, pairs, is_compact)?);
-        }
-
         if args.cmd_positions {
             let pairs:Vec<String> = args.arg_pairs.unwrap_or({ // grab positions from args, or...
-                if args.flag_open { // if --open
-                    let funds = client.funds()?; // wallet.
-                    funds.alts.into_iter().map(|fund| format!("{}BTC", fund.symbol)).collect()
-                } else {
+                if args.flag_watch { // if --watch
                     config.positions.unwrap_or({ // config, or...
                         let funds = client.funds()?; // wallet.
                         funds.alts.into_iter().map(|fund| format!("{}BTC", fund.symbol)).collect()
                     })
+                } else {
+                    let funds = client.funds()?; // wallet.
+                    funds.alts.into_iter().map(|fund| format!("{}BTC", fund.symbol)).collect()
                 }
             });
 
-            let mut output_buffer = String::new();
+            let mut positions = position::positions(client, pairs.clone(), args.flag_all)?;
+            // let ok_positions = positions.into_iter().filter_map(|e| e.ok()).collect();
 
-            // if !args.flag_compact { println!("{}", &::display::position_accumulated::row_header()); }
-            output_buffer.push_str(&position::positions(client, pairs, args.flag_compact)?);
+            if pairs.len() != 1 {
+                positions.sort_by(|a, b| {
+                    match a {
+                        Ok(a) => match b {
+                            Ok(b) => b.percent_change().partial_cmp(&a.percent_change()).expect("sort failed"),
+                            _ => ::std::cmp::Ordering::Less,
+                        },
+                        _ => ::std::cmp::Ordering::Less,
+                    }
+                });
+            }
+
+            let mut output_buffer = String::new();
+            for position in positions.into_iter() {
+                match position {
+                    Ok(position) => output_buffer.push_str(&::display::position::row_compact(position.clone())),
+                    Err(err) => output_buffer.push_str(&err),
+                }
+            }
+
+            // output_buffer.push_str(&::display::position::total(positions.clone()));
 
             return Ok(output_buffer);
         }
 
-        if args.cmd_ev {
-            let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
-            let is_compact = args.flag_compact;
-            let mut symbols = Vec::new();
-            symbols.push(symbol.clone());
-
-            if args.flag_historic {
-                return Ok(position::position_historic(client, &symbol)?);
-            } else {
-                return Ok(position::positions(client, symbols, is_compact)?);
-            }
-
-
-
-            // if args.flag_verbose { println!("evaluating trades...") };
-
-            // let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
-            // let orders = client.past_trades_for(&symbol)?;
-            // let price = client.price(&symbol)?;
-            // let btc_price = client.btc_price()?;
-
-            // // --group
-            // let mut processed_orders = match args.flag_group {
-            //     true => trailer::models::average_orders(orders.clone()),
-            //     false => trailer::models::compact_orders(orders.clone()),
-            // };
-
-            // // --limit=<num>
-            // if args.flag_limit > 0 {
-            //     use trailer::models::Order;
-            //     processed_orders = processed_orders.into_iter().rev().take(args.flag_limit).collect::<Vec<Order>>().into_iter().rev().collect();
-            // };
-
-            // let symbol_qty = if let Some(sq) = client.funds()?.alts.iter().find(|c|c.symbol == symbol) {
-            //     Some(sq.amount)
-            // } else { None };
-
-            // let positions = trailer::models::Position::calculate(processed_orders, price, btc_price, symbol_qty);
-
-            // let acc_positions = trailer::models::PositionAccumulated::calculate(positions.clone());
-            // if !args.flag_compact { println!("{}", ::display::position_accumulated::row_header()) };
-            // for acc_position in acc_positions {
-            //     println!("{}", ::display::position_accumulated::row(acc_position));
-            // }
-
-            // if args.flag_compact {
-            //     positions.into_iter().for_each(|p| println!("{}", ::display::position::row_compact(p)));
-            // } else {
-            //     positions.into_iter().for_each(|p| println!("{}", ::display::position::row(p)));
-            // }
-        }
-
-        // if args.cmd_rsi {
-        //     use colored::*;
-        //     let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
-
-        //     let rsi_15m:Vec<f64> = client.chart_data(&symbol, "15m")?.into_iter().map(|price| price.close_price).collect();
-        //     let rsi_1h:Vec<f64>  = client.chart_data(&symbol, "1h")?.into_iter().map(|price| price.close_price).collect();
-        //     let rsi_1d:Vec<f64> = client.chart_data(&symbol, "1d")?.into_iter().map(|price| price.close_price).collect();
-
-        //     let rsi_15m = indicators::rsi(14, &rsi_15m);
-        //     let rsi_1h   = indicators::rsi(14, &rsi_1h);
-        //     let rsi_1d   = indicators::rsi(14, &rsi_1d);
-
-        //     println!("{symbol:12} {rsi_15m:<8} | {rsi_1h:<8} | {rsi_1d:<8}",
-        //         symbol      = symbol.yellow(),
-        //         rsi_15m     = ::display::colored_rsi(*rsi_15m.last().unwrap(), format!("{:.0}", rsi_15m.last().unwrap())),
-        //         rsi_1h      = ::display::colored_rsi(*rsi_1h.last().unwrap(), format!("{:.0}", rsi_1h.last().unwrap())),
-        //         rsi_1d      = ::display::colored_rsi(*rsi_1d.last().unwrap(), format!("{:.0}", rsi_1d.last().unwrap())));
-
-
-        //     ::graphs::rsi::draw(rsi_15m);
-        // }
-
-        if args.cmd_pl {
-            let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
-            let orders = trailer::models::average_orders(client.past_trades_for(&format!("{}BTC", symbol))?);
-            let price = client.price(&format!("{}BTC", symbol))?;
-            let btc_price = client.btc_price()?;
-            let symbol_qty = client.funds()?.alts.iter().find(|c|c.symbol == symbol).ok_or(TrailerError::generic(&format!("symbol not in funds: {:?}", client.funds())))?.amount;
-
-            trade_position(symbol, symbol_qty, orders, price, btc_price)?;
-        }
-
         if args.cmd_rsi {
-            // use colored::*;
-            use std::thread;
+            let pairs:Vec<String> = if args.flag_all {
+                let pairs = client.prices()?;
+                pairs.into_iter().map(|(k,v)| k).filter(|s| s.contains("BTC")).collect()
+            } else {
+                args.arg_pairs.clone().unwrap_or({ // grab positions from args, or...
+                    if args.flag_watch { // if --watch
+                        config.watch.unwrap_or({ // config, or...
+                            let funds = client.funds()?; // wallet.
+                            funds.alts.into_iter().map(|fund| format!("{}BTC", fund.symbol)).collect()
+                        })
+                    } else {
+                        let funds = client.funds()?; // wallet.
+                        funds.alts.into_iter().map(|fund| format!("{}BTC", fund.symbol)).collect()
+                    }
+                })
+            };
 
-            let pairs = args.arg_pairs.clone().ok_or(TrailerError::missing_argument("pairs"))?;
-            // let mut output:Arc<Vec<String>> = Arc::new(Vec::new());
-
-            let mut threads = Vec::new();
-
-            for pair in pairs {
-                let client = Arc::clone(&client);
-                // let mut output = Arc::clone(&output);
-
-                threads.push(thread::spawn(move || {
-
-                    use colored::*;
-                    // let symbol = args.arg_symbol.clone().ok_or(TrailerError::missing_argument("symbol"))?;
-
-                    let rsi_15m:Vec<f64> = client.chart_data(&pair, "15m").expect("rsi to work").into_iter().map(|price| price.close_price).collect();
-                    let rsi_1h:Vec<f64>  = client.chart_data(&pair, "1h").expect("rsi to work").into_iter().map(|price| price.close_price).collect();
-                    let rsi_1d:Vec<f64> = client.chart_data(&pair, "1d").expect("rsi to work").into_iter().map(|price| price.close_price).collect();
-
-                    let rsi_15m = indicators::rsi(14, &rsi_15m);
-                    let rsi_1h   = indicators::rsi(14, &rsi_1h);
-                    let rsi_1d   = indicators::rsi(14, &rsi_1d);
-
-                    println!("{symbol:12} {rsi_15m:<2} | {rsi_1h:<2} | {rsi_1d:<2}",
-                        symbol      = pair.yellow(),
-                        rsi_15m     = ::display::colored_rsi(*rsi_15m.last().unwrap(), format!("{:.0}", rsi_15m.last().unwrap())),
-                        rsi_1h      = ::display::colored_rsi(*rsi_1h.last().unwrap(), format!("{:.0}", rsi_1h.last().unwrap())),
-                        rsi_1d      = ::display::colored_rsi(*rsi_1d.last().unwrap(), format!("{:.0}", rsi_1d.last().unwrap())));
-
-
-                    // let rsi_15m = rsi(client.chart_data(&pair, "15m").expect("rsi to work"));
-                    // let rsi_1h   = rsi(client.chart_data(&pair, "1h").expect("rsi to work"));
-                    // let rsi_1d   = rsi(client.chart_data(&pair, "1d").expect("rsi to work"));
-
-                    // println!("{pair:12}15m: {rsi_15m:<8}1h: {rsi_1h:<8}1d: {rsi_1d:<8}",
-                    //         pair        = pair.yellow(),
-                    //         rsi_15m     = ::display::colored_rsi(*rsi_15m.last().unwrap(), format!("{:.0}", rsi_15m.last().unwrap())),
-                    //         rsi_1h      = ::display::colored_rsi(*rsi_1h.last().unwrap(), format!("{:.0}", rsi_1h.last().unwrap())),
-                    //         rsi_1d      = ::display::colored_rsi(*rsi_1d.last().unwrap(), format!("{:.0}", rsi_1d.last().unwrap()))
-                    // )
-
-                    // output.push(
-                    //     format!("{pair:12}15m: {rsi_15m:<8}1h: {rsi_1h:<8}1d: {rsi_1d:<8}",
-                    //             pair        = pair.yellow(),
-                    //             rsi_15m     = ::display::colored_rsi(*rsi_15m.last().unwrap(), format!("{:.0}", rsi_15m.last().unwrap())),
-                    //             rsi_1h      = ::display::colored_rsi(*rsi_1h.last().unwrap(), format!("{:.0}", rsi_1h.last().unwrap())),
-                    //             rsi_1d      = ::display::colored_rsi(*rsi_1d.last().unwrap(), format!("{:.0}", rsi_1d.last().unwrap()))
-                    //     )
-                    // );
-                }));
-            }
-
-            for thread in threads { thread.join().expect("threading failed"); }
+            let rsi_values:Vec<(String, Vec<f64>)> = indicators::rsi_from_chart_data(14, ::trailer::threadpool::chart_data(client.clone(), pairs.clone(), "15m"));
+            let rsi_values = indicators::sort_by_last_value(rsi_values);
+            ::display::rsi::rsi(rsi_values);
         }
     };
 
-    Ok(if args.flag_verbose { "done.".to_string() } else { "".to_string() })
-}
-
-// pub fn rsi(prices: Vec<trailer::models::Candlestick>) -> Vec<f64> {
-//     // use ta::indicators::RelativeStrengthIndex;
-//     // use ta::Next;
-
-//     // let mut rsi = RelativeStrengthIndex::new(14).unwrap();
-//     // prices.iter().map(|price| rsi.next(price.close_price)).collect()
-
-//     use ta_lib_wrapper::{TA_Integer, TA_Real, TA_RSI,  TA_RetCode};
-
-//     let close_prices = 
-// }
-
-pub fn trade_position(symbol: String, symbol_qty: f64, orders: Vec<trailer::models::Order>, price: f64, btc_price: f64) -> Result<(), TrailerError> {
-    use colored::*;
-    let symbol_balance = symbol_qty;
-    let btc_balance = 0.0;
-    let mut last_price = orders.first().unwrap().price;
-
-    println!("{:8}{:<12}{:<16}{:<8}{:<16}{:<16}", "type", "qty", "price", "btc_price", "profit", "profit_usd");
-
-    for order in orders {
-        let cost_btc = order.qty * order.price;
-
-        match order.order_type {
-            trailer::models::TradeType::Buy => {
-                let profit = (last_price - order.price) * order.qty;
-                println!("{:8}{:<12.2}{:<16.8}{:<8.2}{:<16.4}{:<16.2}",
-                    "BUY".green(), order.qty, order.price, order.qty * order.price, profit, profit * btc_price);
-            },
-            trailer::models::TradeType::Sell => {
-                let profit = (order.price - last_price) * order.qty;
-                println!("{:8}{:<12.2}{:<16.8}{:<8.2}{:<16.4}{:<16.2}",
-                    "SELL".red(), order.qty, order.price, order.qty * order.price, profit, profit * btc_price);
-            }
-        }
-        last_price = order.price;
-    }
-
-    println!("assumed initial bal: {}", symbol_balance);
-    Ok(())
+    Ok(if args.flag_debug { "done.".to_string() } else { "".to_string() })
 }

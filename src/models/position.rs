@@ -35,8 +35,18 @@ impl Position {
 	// }
 
 	pub fn entry_price(&self) -> f64 { self.buy_order.price }
+	pub fn entry_cost(&self) -> f64 { self.buy_order.price * self.buy_order.qty }
+	
 	pub fn exit_price(&self) -> Option<f64> { if let Some(ref order) = self.sell_order { Some(order.price) } else { None } }
-	pub fn size(&self) -> f64 { self.buy_order.qty }
+	
+	pub fn size(&self) -> f64 {
+		if self.state() == PositionState::Closed {
+			self.buy_order.qty
+		} else {	
+			let sold_qty = self.clone().sell_order.and_then(|o| Some(o.qty)).unwrap_or(0.0);
+			self.buy_order.qty - sold_qty
+		}
+	}
 
 	// pub fn percent_change(&self, current_price: f64) -> f64 { price_percent(self.buy_order.price, current_price) }
 

@@ -17,6 +17,19 @@ impl PositionPresenter {
     //     }
     // }
 
+    pub fn remaining_quantity(&self) -> f64 {
+        if self.position.state() == PositionState::Closed {
+            self.position.buy_order.qty
+        } else {
+            let sold_qty = self.position.clone().sell_order.and_then(|o| Some(o.qty)).unwrap_or(0.0);
+            (self.position.buy_order.qty - sold_qty)
+        }
+    }
+
+    pub fn total_current_value(&self) -> f64 {
+        self.remaining_quantity() * self.current_price
+    }
+    
     pub fn size_in_btc(&self) -> f64 {
         self.position.size() * self.current_price
     }
@@ -38,17 +51,12 @@ impl PositionPresenter {
     }
 
     pub fn unrealised_profit_btc(&self) -> f64 {
-        self.total_profit_btc()
+        // price of remaining units at the current price - those units at buy price
+        (self.remaining_quantity() * self.current_price) - (self.remaining_quantity() * self.position.buy_order.price)
     }
 
     pub fn unrealised_profit_usd(&self) -> f64 {
-        self.total_profit_btc() * self.btc_price_in_usd
-    }
-
-    pub fn realised_profit_percent(&self) -> f64 {
-        if let Some(sell_order) = self.clone().position.sell_order {
-            price_percent(self.position.buy_order.price, sell_order.price)
-        } else { 0.0 }
+        self.unrealised_profit_btc() * self.btc_price_in_usd
     }
 
     pub fn realised_profit_btc(&self) -> f64 {
@@ -59,6 +67,12 @@ impl PositionPresenter {
 
     pub fn realised_profit_usd(&self) -> f64 {
         self.realised_profit_btc() * self.btc_price_in_usd
+    }
+
+    pub fn realised_profit_percent(&self) -> f64 {
+        if let Some(sell_order) = self.clone().position.sell_order {
+            price_percent(self.position.buy_order.price, sell_order.price)
+        } else { 0.0 }
     }
 }
 

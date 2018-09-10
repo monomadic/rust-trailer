@@ -87,9 +87,9 @@ pub fn positions(_req: &mut Request) -> Result<String, ServerError> {
 
             let grouped_orders = ::trailer::models::average_orders(orders.clone());
             // let positions = trailer::models::Position::calculate(grouped_orders, price, btc_price, None);
-            let position = ::trailer::models::Position::new(grouped_orders);
+            let positions = ::trailer::models::Position::new(grouped_orders);
 
-            if let Some(position) = position {
+            for position in positions {
                 let presenter = PositionPresenter{ position: position, current_price: price, btc_price_in_usd: btc_price };
                 // if presenter.into_iter().filter(|p| p.position.state() == PositionState::Open) {
                     output_buffer.push_str(&::views::position::row(presenter));

@@ -1,4 +1,7 @@
-use talib::{TA_Integer, TA_Real, TA_RSI,  TA_RetCode};
+use error::*;
+use models::*;
+
+use talib::{TA_Integer, TA_RSI,  TA_RetCode};
 /// Compute RSI(period) on `close_prices`
 /// This function returns a tuple containing the list of rsi values and the index of the first
 /// close to have an associated rsi value
@@ -28,4 +31,27 @@ pub fn rsi(period: u32, close_prices: &Vec<f64>) -> Vec<f64> {
     }
 
     out
+}
+
+pub fn rsi_from_chart_data(period: u32, values: Vec<(String, Result<Vec<Candlestick>, TrailerError>)>) -> Vec<(String, Vec<f64>)> {
+    values.into_iter()
+        .filter(|(_s,c)| c.is_ok())
+        .map(|(s,c)| (s, rsi(period,
+            &c.unwrap()
+                .into_iter()
+                .map(|c| c.close_price)
+                .collect()
+            )))
+        .collect()
+}
+
+pub fn sort_by_last_value(mut values: Vec<(String, Vec<f64>)>) -> Vec<(String, Vec<f64>)> {
+    values.sort_by(|(_,av), (_,bv)| {
+        if let Some(a_value) = av.last() {
+            if let Some(b_value) = bv.last() {
+                b_value.partial_cmp(a_value).expect("sort failed")
+            } else { ::std::cmp::Ordering::Less }
+        } else { ::std::cmp::Ordering::Less }
+    });
+    values
 }

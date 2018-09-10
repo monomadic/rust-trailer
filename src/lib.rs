@@ -15,6 +15,7 @@ extern crate serde;
 extern crate ratelimit;
 extern crate itertools;
 extern crate ta_lib_wrapper as talib;
+extern crate rayon;
 
 pub mod config;
 pub mod error;
@@ -23,3 +24,4 @@ pub mod models;
 pub mod presenters;
 pub mod socket;
 pub mod indicators;
+pub mod threadpool;

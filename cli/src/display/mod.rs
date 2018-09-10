@@ -4,13 +4,13 @@
 use colored::*;
 use trailer::models::*;
 use trailer::error::*;
-use trailer::presenters::*;
+// use trailer::presenters::*;
 
 pub mod asset;
 pub mod funds;
 pub mod order;
 pub mod position;
-// pub mod position_accumulated;
+pub mod rsi;
 
 pub fn error(error: TrailerError) {
     println!("{}", format!("Error: {}", error.message).red());

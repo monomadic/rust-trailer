@@ -54,11 +54,11 @@ impl ExchangeAPI for BinanceAPI {
     fn funds(&self) -> Result<Funds, TrailerError> {
         let balances = self.balances()?;
         // let prices = self.prices()?;
-        let mut btc = balances.clone().into_iter().find(|c| c.symbol == "BTC");
+        let btc = balances.clone().into_iter().find(|c| c.symbol == "BTC");
         let usdt = balances.clone().into_iter().find(|c| c.symbol == "USDT");
 
         let alts_all:Vec<Asset> = balances.clone().into_iter().filter(|c| c.symbol != "USDT" && c.symbol != "BTC").collect();
-        let mut alts:Vec<Asset> = alts_all.into_iter().filter(|c| c.amount > 0.9).collect();
+        let alts:Vec<Asset> = alts_all.into_iter().filter(|c| c.amount > 0.9).collect();
 
         // let btc_price = self.btc_price()?;
 
@@ -149,7 +149,7 @@ impl ExchangeAPI for BinanceAPI {
         Err(TrailerError::unsupported())
     }
 
-    fn past_trades_for(&self, symbol: &str) -> Result<Vec<Order>, TrailerError> {
+    fn trades_for(&self, symbol: &str) -> Result<Vec<Order>, TrailerError> {
         Ok(self.account.trade_history(symbol)?.into_iter().map(|order| {
             Order{
                 id:             order.id.to_string(),

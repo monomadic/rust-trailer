@@ -1,7 +1,7 @@
 pub mod binance;
-pub mod bittrex;
-pub mod bitfinex;
-pub mod kucoin;
+// pub mod bittrex;
+// pub mod bitfinex;
+// pub mod kucoin;
 
 use ::models::*;
 use ::error::*;
@@ -20,7 +20,7 @@ pub trait ExchangeAPI {
     fn stop_loss(&self, symbol: &str, amount: f64, stop_price: f64, limit_price: f64) -> Result<(), TrailerError>;
     fn open_orders(&self)           -> Result<Vec<Order>, TrailerError>;
     fn past_orders(&self)           -> Result<Vec<Order>, TrailerError>;
-    fn past_trades_for(&self, symbol: &str) -> Result<Vec<Order>, TrailerError>;
+    fn trades_for(&self, symbol: &str) -> Result<Vec<Order>, TrailerError>;
     fn chart_data(&self, symbol: &str, interval: &str) -> Result<Vec<Candlestick>, TrailerError>;
     fn btc_price(&self)             -> Result<f64, TrailerError>;
 
