@@ -3,6 +3,7 @@ extern crate router;
 extern crate staticfile;
 extern crate mount;
 #[macro_use] extern crate horrorshow;
+extern crate rusqlite;
 
 extern crate trailer;
 
@@ -12,20 +13,33 @@ use std::sync::{Arc, Mutex};
 mod controllers;
 mod error;
 mod views;
+mod cache;
 
 fn main() {
-    // use coinref::controllers;
-    // use coinref::controllers::handle_request;
-
     let mut router = router::Router::new();
     let mut mount = mount::Mount::new();
 
-    // let db = Arc::new(Mutex::new(
-    //     rusqlite::Connection::open(::std::path::Path::new("./database.sql"))
-    //         .expect("./database.sql failed to open")
-    // ));
+    // let conn = Arc::new(
+    //     rusqlite::Connection::open(::std::path::Path::new("./cache.sql"))
+    //         .expect("./cache.sql failed to open")
+    // );
 
-    // let db_root = db.clone();
+    let conn = Arc::new(Mutex::new(
+        rusqlite::Connection::open(::std::path::Path::new("./cache.sql"))
+            .expect("./cache.sql failed to open")
+    ));
+
+    // let db = rusqlite::Connection::open(::std::path::Path::new("./cache.sql"))
+    //     .expect("./cache.sql failed to open");
+
+
+
+    // if let db = db.clone() {
+    //     router.get("/rsi", move |r: &mut Request| {
+    //         controllers::handle_request(controllers::rsi(r))
+    //     }, "rsi");
+    // }
+
     router.get("/funds", move |r: &mut Request| {
         controllers::handle_request(controllers::funds(r))
     }, "funds");
@@ -40,7 +54,9 @@ fn main() {
 
     // let db_coin = db.clone();
     router.get("/", move |_r: &mut Request| {
-        Ok(Response::with((iron::status::Ok, ":)")))
+        let db = conn.clone();
+        let rsi = cache::get_all_candles(&db.lock().unwrap());
+        Ok(Response::with((iron::status::Ok, format!("{:#?}", rsi))))
     }, "root");
 
     // let db_by_tag = db.clone();

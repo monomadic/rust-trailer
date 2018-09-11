@@ -1,2 +1,2 @@
 #!/bin/sh
-cargo run --package server
+cargo run --package server --bin serve

@@ -12,6 +12,7 @@ use ::models::*;
 use ::error::*;
 use ::exchanges::*;
 
+#[derive(Clone)]
 pub struct BinanceAPI {
     account: Account,
     market: Market,

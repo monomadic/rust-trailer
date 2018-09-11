@@ -15,3 +15,19 @@ toml = "*"
 serde = "*"
 serde_derive = "1.0"
 regex = "0.2"
+rusqlite = "0.13"
+
+[[bin]]
+name = "import"
+doc = false
+path = "src/import.rs"
+
+[[bin]]
+name = "setup"
+doc = false
+path = "src/setup.rs"
+
+[[bin]]
+name = "serve"
+doc = false
+path = "src/main.rs"

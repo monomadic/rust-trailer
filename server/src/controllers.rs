@@ -54,6 +54,10 @@ pub fn chart(req: &mut Request) -> Result<String, ServerError> {
     ", symbol))
 }
 
+pub fn rsi(_req: &mut Request) -> Result<String, ServerError> {
+    Ok("rsi".to_string())
+}
+
 pub fn funds(_req: &mut Request) -> Result<String, ServerError> {
     use trailer::exchanges::ExchangeAPI;
     let client = ::trailer::exchanges::binance::connect("9N5duztMdrYfYg2ErhSDV837s8xfBIqF8D7mxpJTKiujvSwoIDI52UguhhkyRQBg", "OG6avXJGOeDt5Phbp150zeEgwjQZpgkXdrp8z2vwPv5bWlHuNFLrK4uAGidnpAIU");
@@ -80,7 +84,7 @@ pub fn positions(_req: &mut Request) -> Result<String, ServerError> {
     let pairs:Vec<String> = funds.alts.into_iter().map(|fund| format!("{}BTC", fund.symbol)).collect();
 
     for pair in pairs {
-        let orders = client.past_trades_for(&pair);
+        let orders = client.trades_for(&pair);
 
         if let Ok(orders) = orders {  // ok to swallow error here. not critical.
             let price = *(prices.get(&pair).unwrap_or(&0.0));
