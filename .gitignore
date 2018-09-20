@@ -3,3 +3,4 @@
 .config.toml
 .idea
 cache.sql
+.DS_Store
