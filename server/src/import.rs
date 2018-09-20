@@ -13,7 +13,7 @@ pub fn main() {
 
     let client = ::trailer::exchanges::binance::connect("9N5duztMdrYfYg2ErhSDV837s8xfBIqF8D7mxpJTKiujvSwoIDI52UguhhkyRQBg", "OG6avXJGOeDt5Phbp150zeEgwjQZpgkXdrp8z2vwPv5bWlHuNFLrK4uAGidnpAIU");
 
-    let pairs = vec!["XEMUSD".to_string(), "ADABTC".to_string()];
+    let pairs = vec!["XEMBTC".to_string(), "ADABTC".to_string()];
     let data = ::trailer::threadpool::chart_data(::std::sync::Arc::new(client.clone()), pairs.clone(), "15m");
 
     for (pair, candlestick_result) in data {
