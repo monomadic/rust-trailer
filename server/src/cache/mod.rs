@@ -1,4 +1,4 @@
-// use std::collections::HashMap;
+use std::collections::HashMap;
 
 // struct RSICache {
     
@@ -8,6 +8,16 @@
 
 use rusqlite;
 use trailer::models::*;
+
+pub fn get_all_pairs(conn: &rusqlite::Connection) -> Result<Vec<(String, f64)>, rusqlite::Error> {
+    let mut query = conn.prepare("SELECT pair, price FROM pairs;")?;
+    
+    let results = query.query_map(&[], |row| {
+        (row.get::<_,String>(0), row.get::<_,f64>(1))
+    })?.filter(|r|r.is_ok()).map(|r|r.unwrap()).collect();
+
+    Ok(results)
+}
 
 pub fn get_all_candles(conn: &rusqlite::Connection) -> Vec<(String, Vec<Candlestick>)> {
     // let mut query = conn.prepare("SELECT * FROM klines;").unwrap();

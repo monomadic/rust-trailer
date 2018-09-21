@@ -54,6 +54,15 @@ pub fn chart(req: &mut Request) -> Result<String, ServerError> {
     ", symbol))
 }
 
+pub fn prices(_req: &mut Request, conn: &::rusqlite::Connection) -> Result<String, ServerError> {
+    let pairs = ::cache::get_all_pairs(&conn)?;
+    let mut output_buffer:Vec<String> = Vec::new();
+    for (symbol, price) in pairs {
+        output_buffer.push(format!("\"{}\": {}", symbol, price));
+    }
+    Ok(format!("[{}]", output_buffer.join(",")))
+}
+
 pub fn rsi(_req: &mut Request, conn: &::rusqlite::Connection) -> Result<String, ServerError> {
     let candles = ::cache::get_all_candles(&conn);
     let rsi = ::trailer::indicators::rsi_from_clean_chart_data(14, candles);

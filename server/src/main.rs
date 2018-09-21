@@ -57,6 +57,11 @@ fn main() {
         controllers::handle_request(controllers::rsi(r, &db_root.lock().unwrap()))
     }, "root");
 
+    let db_prices = conn.clone();
+    router.get("/prices.json", move |r: &mut Request| {
+        controllers::handle_request(controllers::prices(r, &db_prices.lock().unwrap()))
+    }, "prices");
+
     // let db_by_tag = db.clone();
     // router.get("/tag/:tag", move |r: &mut Request| {
     //     handle_request(controllers::filter_by_tag(r, &db_by_tag.lock().unwrap()))
