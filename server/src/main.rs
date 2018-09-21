@@ -52,11 +52,9 @@ fn main() {
         controllers::handle_request(controllers::chart(r))
     }, "chart");
 
-    // let db_coin = db.clone();
-    router.get("/", move |_r: &mut Request| {
-        let db = conn.clone();
-        let rsi = cache::get_all_candles(&db.lock().unwrap());
-        Ok(Response::with((iron::status::Ok, format!("{:#?}", rsi))))
+    let db_root = conn.clone();
+    router.get("/", move |r: &mut Request| {
+        controllers::handle_request(controllers::rsi(r, &db_root.lock().unwrap()))
     }, "root");
 
     // let db_by_tag = db.clone();

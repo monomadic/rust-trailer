@@ -33,6 +33,16 @@ pub fn rsi(period: u32, close_prices: &Vec<f64>) -> Vec<f64> {
     out
 }
 
+pub fn rsi_from_clean_chart_data(period: u32, values: Vec<(String, Vec<Candlestick>)>) -> Vec<(String, Vec<f64>)> {
+    values.into_iter()
+        .map(|(s,c)| (s, rsi(period,
+            &c.into_iter()
+                .map(|c| c.close_price)
+                .collect()
+            )))
+        .collect()
+}
+
 pub fn rsi_from_chart_data(period: u32, values: Vec<(String, Result<Vec<Candlestick>, TrailerError>)>) -> Vec<(String, Vec<f64>)> {
     values.into_iter()
         .filter(|(_s,c)| c.is_ok())

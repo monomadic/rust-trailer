@@ -54,8 +54,15 @@ pub fn chart(req: &mut Request) -> Result<String, ServerError> {
     ", symbol))
 }
 
-pub fn rsi(_req: &mut Request) -> Result<String, ServerError> {
-    Ok("rsi".to_string())
+pub fn rsi(_req: &mut Request, conn: &::rusqlite::Connection) -> Result<String, ServerError> {
+    let candles = ::cache::get_all_candles(&conn);
+    let rsi = ::trailer::indicators::rsi_from_clean_chart_data(14, candles);
+
+    let page = rsi.into_iter().map(|(_s, r)|
+        r.into_iter().map(|v|v.round().to_string()).collect::<Vec<String>>().join(",")
+    ).collect::<Vec<String>>().join("");
+
+    Ok(format!("{:#?}", page))
 }
 
 pub fn funds(_req: &mut Request) -> Result<String, ServerError> {

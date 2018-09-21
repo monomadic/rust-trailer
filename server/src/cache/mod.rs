@@ -7,7 +7,6 @@
 // pub fn 
 
 use rusqlite;
-
 use trailer::models::*;
 
 pub fn get_all_candles(conn: &rusqlite::Connection) -> Vec<(String, Vec<Candlestick>)> {
