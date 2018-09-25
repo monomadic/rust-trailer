@@ -8,7 +8,7 @@ pub fn show_funds(funds: FundsPresenter) {
     }
 
     for fiat in funds.clone().fiat {
-        println!("{:<8}\t{:<8.3} \t{:<8.3}\t{:<16}", fiat.asset.symbol.green(), fiat.asset.amount, display_fiat(fiat.asset.amount), "-");
+        println!("{:<8}\t{:<8.3} \t{:<8.3}\t{:<16}", fiat.asset.symbol.green(), fiat.asset.amount, fiat.value_in_btc, display_fiat(fiat.value_in_usd));
     }
 
     for altcoin in funds.clone().alts {
