@@ -233,12 +233,15 @@ pub fn run_docopt() -> Result<String, TrailerError> {
             }
 
             let mut output_buffer = String::new();
-            for position in positions.into_iter() {
+            for position in positions.clone() {
                 match position {
                     Ok(position) => output_buffer.push_str(&::display::position::row_compact(position.clone())),
                     Err(err) => output_buffer.push_str(&err),
                 }
             }
+
+            let positions = positions.into_iter().filter(|r|r.is_ok()).map(|r|r.unwrap()).collect();
+            output_buffer.push_str(&format!("\nTotal BTC Staked: {:.3}", ::trailer::presenters::total_btc_staked(positions)));
 
             // output_buffer.push_str(&::display::position::total(positions.clone()));
 

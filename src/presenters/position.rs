@@ -80,3 +80,7 @@ pub fn price_percent(entry_price: f64, exit_price: f64) -> f64 {
     if entry_price < exit_price { (100. / entry_price * exit_price) - 100. }
     else { -(100. + -100. / entry_price * exit_price) }
 }
+
+pub fn total_btc_staked(presenters: Vec<PositionPresenter>) -> f64 {
+    presenters.into_iter().map(|a| a.size_in_btc()).sum()
+}
