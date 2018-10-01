@@ -52,10 +52,10 @@ fn main() {
         controllers::handle_request(controllers::chart(r))
     }, "chart");
 
-    let db_root = conn.clone();
-    router.get("/", move |r: &mut Request| {
-        controllers::handle_request(controllers::rsi(r, &db_root.lock().unwrap()))
-    }, "root");
+    // let db_root = conn.clone();
+    // router.get("/", move |r: &mut Request| {
+    //     controllers::handle_request(controllers::rsi(r, &db_root.lock().unwrap()))
+    // }, "root");
 
     let db_prices = conn.clone();
     router.get("/prices.json", move |r: &mut Request| {
@@ -67,11 +67,13 @@ fn main() {
     //     handle_request(controllers::filter_by_tag(r, &db_by_tag.lock().unwrap()))
     // }, "filter_by_tag");
 
+    mount.mount("/index.html", staticfile::Static::new(::std::path::Path::new("server/static/index.html")));
     mount.mount("/", router);
 
     // // static mount
     // let static_assets = staticfile::Static::new(::std::path::Path::new("static"));
     // mount.mount("/static", static_assets);
+
 
     // launch server
     println!("launching server at http://localhost:4000/");

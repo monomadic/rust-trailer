@@ -58,7 +58,7 @@ pub fn prices(_req: &mut Request, conn: &::rusqlite::Connection) -> Result<Strin
     let pairs = ::cache::get_all_pairs(&conn)?;
     let mut output_buffer:Vec<String> = Vec::new();
     for (symbol, price) in pairs {
-        output_buffer.push(format!("\"{}\": {}", symbol, price));
+        output_buffer.push(format!("{{\"pair\": \"{}\", \"price\": {}}}", symbol, price));
     }
     Ok(format!("[{}]", output_buffer.join(",")))
 }
@@ -68,7 +68,7 @@ pub fn rsi(_req: &mut Request, conn: &::rusqlite::Connection) -> Result<String, 
     let rsi = ::trailer::indicators::rsi_from_clean_chart_data(14, candles);
 
     let page = rsi.into_iter().map(|(_s, r)|
-        r.into_iter().map(|v|v.round().to_string()).collect::<Vec<String>>().join(",")
+        format!("{{{}}}", r.into_iter().map(|v|v.round().to_string()).collect::<Vec<String>>().join(","))
     ).collect::<Vec<String>>().join("");
 
     Ok(format!("{:#?}", page))
