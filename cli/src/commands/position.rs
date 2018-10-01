@@ -13,6 +13,8 @@ pub fn positions(client: ::std::sync::Arc<::trailer::exchanges::ExchangeAPI>, pa
         let orders = client.trades_for(&pair);
 
         if let Ok(orders) = orders {  // ok to swallow error here. not critical.
+            if pair == "BNBBTC".to_string() { continue };
+
             let price = *(prices.get(&pair).unwrap_or(&0.0));
             let grouped_orders = trailer::models::average_orders(orders.clone());
             let positions = trailer::models::Position::new(grouped_orders);
@@ -26,7 +28,12 @@ pub fn positions(client: ::std::sync::Arc<::trailer::exchanges::ExchangeAPI>, pa
                 }
             } else {
                 // filter out closed positions as first shown entry (as they are less irrelevant)
-                let positions:Vec<Position> = positions.into_iter().filter(|p| p.state() != PositionState::Closed && p.state() != PositionState::Irreconciled).collect();
+                let positions:Vec<Position> = positions.into_iter().filter(|p|
+                    // p.symbol != "BNBBTC".to_string() &&
+                    p.state() != PositionState::Closed &&
+                    p.state() != PositionState::Irreconciled
+                ).collect();
+
                 if let Some(position) = positions.first() {
                     presenters.push(Ok(PositionPresenter{ position: position.clone(), current_price: price, btc_price_in_usd: btc_price }));
                 } else {

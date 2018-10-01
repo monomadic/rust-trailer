@@ -239,8 +239,8 @@ pub fn run_docopt() -> Result<String, TrailerError> {
                 }
             }
 
-            let positions = positions.into_iter().filter(|r|r.is_ok()).map(|r|r.unwrap()).collect();
-            output_buffer.push_str(&format!("\nTotal BTC Staked: {:.3}", ::trailer::presenters::total_btc_staked(positions)));
+            let position_presenters = positions.into_iter().filter(|r|r.is_ok()).map(|r|r.unwrap()).collect();
+            output_buffer.push_str(&format!("\nTotal BTC Staked: {:.3}", ::trailer::presenters::total_btc_staked(position_presenters)));
 
             // output_buffer.push_str(&::display::position::total(positions.clone()));
 
