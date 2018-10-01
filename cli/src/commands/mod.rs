@@ -66,7 +66,6 @@ struct Args {
     flag_debug: bool,
     flag_group: bool,
     flag_log: bool,
-    // flag_limit: usize,
     flag_sort_by_name: bool,
     flag_sl: Option<f64>,
     flag_slip: Option<f64>,
