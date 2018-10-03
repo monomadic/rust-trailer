@@ -5,6 +5,7 @@ pub struct Position {
 	pub symbol:                 String,
 	pub buy_order:				Order,
 	pub sell_order:				Option<Order>,
+	pub orders:					Vec<Order>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -83,17 +84,14 @@ impl Position {
 						// percent_change:		price_percent(buy_order.price, current_price),
 						buy_order:			buy_order,
 						sell_order:			sell_order,
+						orders: 			orders.clone(),
 					})
 				}
 
 			};
 		}
 
-
 		positions
-
-
-
 
 		// println!("{:#?}", Order::group(orders));
 
