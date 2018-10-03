@@ -28,13 +28,6 @@ impl ::std::fmt::Display for PositionState {
 }
 
 impl Position {
-	// pub fn change_as_percent(&self) -> f64 {
-	// 	match self.trade_type {
-	// 		TradeType::Buy => price_percent(self.sale_price, self.current_price),
-	// 		TradeType::Sell => -price_percent(self.sale_price, self.current_price),
-	// 	}
-	// }
-
 	pub fn entry_price(&self) -> f64 { self.buy_order.price }
 	pub fn entry_cost(&self) -> f64 { self.buy_order.price * self.buy_order.qty }
 	
@@ -49,8 +42,6 @@ impl Position {
 		}
 	}
 
-	// pub fn percent_change(&self, current_price: f64) -> f64 { price_percent(self.buy_order.price, current_price) }
-
 	pub fn state(&self) -> PositionState {
 		derive_state(self.buy_order.qty, self.clone().sell_order.and_then(|o| Some(o.qty)).unwrap_or(0.0))
 	}
@@ -59,9 +50,6 @@ impl Position {
 		// reverse the array cause we want to work backwards.
 		// let orders = orders.into_iter().rev().collect();
 		let mut orders = Order::compact(orders);
-		// let mut orders = orders;
-		// println!("{:#?}", orders);
-
 		let mut positions = Vec::new();
 
 		while orders.len() > 0 {
@@ -87,7 +75,6 @@ impl Position {
 						orders: 			orders.clone(),
 					})
 				}
-
 			};
 		}
 

@@ -2,8 +2,12 @@ extern crate iron;
 extern crate router;
 extern crate staticfile;
 extern crate mount;
-#[macro_use] extern crate horrorshow;
 extern crate rusqlite;
+#[macro_use] extern crate horrorshow;
+
+extern crate serde;
+#[macro_use] extern crate serde_json;
+#[macro_use] extern crate serde_derive;
 
 extern crate trailer;
 

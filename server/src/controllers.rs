@@ -1,6 +1,7 @@
 use iron::prelude::*;
 use iron::status;
 use iron::headers::ContentType;
+use serde_json;
 
 use ::error::*;
 
@@ -56,11 +57,14 @@ pub fn chart(req: &mut Request) -> Result<String, ServerError> {
 
 pub fn prices(_req: &mut Request, conn: &::rusqlite::Connection) -> Result<String, ServerError> {
     let pairs = ::cache::get_all_pairs(&conn)?;
-    let mut output_buffer:Vec<String> = Vec::new();
-    for (symbol, price) in pairs {
-        output_buffer.push(format!("{{\"pair\": \"{}\", \"price\": {}}}", symbol, price));
+    let mut output_json = Vec::new();
+    for (symbol, price) in pairs.clone() {
+        output_json.push(json!({
+            "pair": symbol,
+            "price": price,
+        }))
     }
-    Ok(format!("[{}]", output_buffer.join(",")))
+    Ok(format!("{}", serde_json::to_string(&output_json)?))
 }
 
 pub fn rsi(_req: &mut Request, conn: &::rusqlite::Connection) -> Result<String, ServerError> {

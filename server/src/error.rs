@@ -8,7 +8,8 @@ pub enum ServerError {
     RequestError(String),
     DatabaseError(rusqlite::Error),
     TrailerError(TrailerError),
-    TemplateError(::horrorshow::Error)
+    TemplateError(::horrorshow::Error),
+    JSONError(::serde_json::Error)
 }
 
 impl fmt::Display for ServerError {
@@ -36,5 +37,11 @@ impl From<::horrorshow::Error> for ServerError {
 impl From<::rusqlite::Error> for ServerError {
     fn from(error: ::rusqlite::Error) -> Self {
         ServerError::DatabaseError(error)
+    }
+}
+
+impl From<::serde_json::Error> for ServerError {
+    fn from(error: ::serde_json::Error) -> Self {
+        ServerError::JSONError(error)
     }
 }
