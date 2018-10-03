@@ -13,7 +13,7 @@ pub fn positions(client: ::std::sync::Arc<::trailer::exchanges::ExchangeAPI>, pa
         let orders = client.trades_for(&pair);
 
         if let Ok(orders) = orders {  // ok to swallow error here. not critical.
-            if pair == "BNBBTC".to_string() { continue };
+            if pairs.len() > 1 && pair == "BNBBTC".to_string() { continue };
 
             let price = *(prices.get(&pair).unwrap_or(&0.0));
             let grouped_orders = trailer::models::average_orders(orders.clone());
