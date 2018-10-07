@@ -34,12 +34,14 @@ decodeCoinPair =
     Decode.map5 CoinPair
         (Decode.field "pair" Decode.string)
         (Decode.field "price" Decode.float)
-        (Decode.field "rsi_15m" (Decode.oneOf [Decode.float, Decode.null 0.0])
-            |> Decode.andThen (\rsi -> Decode.succeed(round rsi)))
-        (Decode.field "rsi_1h" (Decode.oneOf [Decode.float, Decode.null 0.0])
-            |> Decode.andThen (\rsi -> Decode.succeed(round rsi)))
-        (Decode.field "rsi_1d" (Decode.oneOf [Decode.float, Decode.null 0.0])
-            |> Decode.andThen (\rsi -> Decode.succeed(round rsi)))
+        (Decode.field "rsi_15m" decodeFloatAsInt)
+        (Decode.field "rsi_1h" decodeFloatAsInt)
+        (Decode.field "rsi_1d" decodeFloatAsInt)
+
+decodeFloatAsInt : Decode.Decoder Int
+decodeFloatAsInt =
+    Decode.map
+        round(Decode.oneOf [Decode.float, Decode.null 0.0])
 
 -- main
 
