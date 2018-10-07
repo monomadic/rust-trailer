@@ -4972,19 +4972,39 @@ var author$project$Main$init = function (flags) {
 var author$project$Main$GotCoinPair = function (a) {
 	return {$: 'GotCoinPair', a: a};
 };
-var author$project$Main$CoinPair = F2(
-	function (pair, price) {
-		return {pair: pair, price: price};
+var author$project$Main$CoinPair = F3(
+	function (pair, price, rsi_15m) {
+		return {pair: pair, price: price, rsi_15m: rsi_15m};
 	});
+var elm$core$Basics$round = _Basics_round;
+var elm$json$Json$Decode$andThen = _Json_andThen;
 var elm$json$Json$Decode$field = _Json_decodeField;
 var elm$json$Json$Decode$float = _Json_decodeFloat;
-var elm$json$Json$Decode$map2 = _Json_map2;
+var elm$json$Json$Decode$map3 = _Json_map3;
+var elm$json$Json$Decode$null = _Json_decodeNull;
+var elm$json$Json$Decode$oneOf = _Json_oneOf;
 var elm$json$Json$Decode$string = _Json_decodeString;
-var author$project$Main$decodeCoinPair = A3(
-	elm$json$Json$Decode$map2,
+var elm$json$Json$Decode$succeed = _Json_succeed;
+var author$project$Main$decodeCoinPair = A4(
+	elm$json$Json$Decode$map3,
 	author$project$Main$CoinPair,
 	A2(elm$json$Json$Decode$field, 'pair', elm$json$Json$Decode$string),
-	A2(elm$json$Json$Decode$field, 'price', elm$json$Json$Decode$float));
+	A2(elm$json$Json$Decode$field, 'price', elm$json$Json$Decode$float),
+	A2(
+		elm$json$Json$Decode$andThen,
+		function (rsi) {
+			return elm$json$Json$Decode$succeed(
+				elm$core$Basics$round(rsi));
+		},
+		A2(
+			elm$json$Json$Decode$field,
+			'rsi_15m',
+			elm$json$Json$Decode$oneOf(
+				_List_fromArray(
+					[
+						elm$json$Json$Decode$float,
+						elm$json$Json$Decode$null(0.0)
+					])))));
 var elm$json$Json$Decode$list = _Json_decodeList;
 var author$project$Main$decodeCoinList = elm$json$Json$Decode$list(author$project$Main$decodeCoinPair);
 var elm$http$Http$Internal$EmptyBody = {$: 'EmptyBody'};
@@ -5819,7 +5839,7 @@ var billstclair$elm_sortable_table$Table$HtmlDetails = F2(
 		return {attributes: attributes, children: children};
 	});
 var elm$json$Json$Decode$map = _Json_map1;
-var elm$json$Json$Decode$succeed = _Json_succeed;
+var elm$json$Json$Decode$map2 = _Json_map2;
 var elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
 	switch (handler.$) {
 		case 'Normal':
@@ -5963,6 +5983,18 @@ var billstclair$elm_sortable_table$Table$floatColumn = F2(
 					toFloat)
 			});
 	});
+var billstclair$elm_sortable_table$Table$intColumn = F2(
+	function (name, toInt) {
+		return billstclair$elm_sortable_table$Table$Column(
+			{
+				name: name,
+				sorter: billstclair$elm_sortable_table$Table$increasingOrDecreasingBy(toInt),
+				viewData: A2(
+					elm$core$Basics$composeL,
+					A2(elm$core$Basics$composeL, billstclair$elm_sortable_table$Table$textDetails, elm$core$String$fromInt),
+					toInt)
+			});
+	});
 var billstclair$elm_sortable_table$Table$stringColumn = F2(
 	function (name, toStr) {
 		return billstclair$elm_sortable_table$Table$Column(
@@ -5987,6 +6019,12 @@ var author$project$Main$config = billstclair$elm_sortable_table$Table$config(
 				'Price',
 				function ($) {
 					return $.price;
+				}),
+				A2(
+				billstclair$elm_sortable_table$Table$intColumn,
+				'RSI 15m',
+				function ($) {
+					return $.rsi_15m;
 				})
 			]),
 		toId: function ($) {

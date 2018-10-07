@@ -18,7 +18,10 @@ pub fn main() {
             pair                VARCHAR NOT NULL,
             exchange            VARCHAR NOT NULL,
             volume              REAL,
-            price               REAL
+            price               REAL,
+            rsi_15m             REAL,
+            rsi_1h              REAL,
+            rsi_1d              REAL
         );
 
         CREATE TABLE klines (

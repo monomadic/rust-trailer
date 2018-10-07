@@ -58,10 +58,11 @@ pub fn chart(req: &mut Request) -> Result<String, ServerError> {
 pub fn prices(_req: &mut Request, conn: &::rusqlite::Connection) -> Result<String, ServerError> {
     let pairs = ::cache::get_all_pairs(&conn)?;
     let mut output_json = Vec::new();
-    for (symbol, price) in pairs.clone() {
+    for (symbol, price, rsi_15m) in pairs.clone() {
         output_json.push(json!({
             "pair": symbol,
             "price": price,
+            "rsi_15m": rsi_15m,
         }))
     }
     Ok(format!("{}", serde_json::to_string(&output_json)?))

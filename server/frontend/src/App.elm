@@ -1,10 +1,12 @@
-module Main exposing (Model, Msg(..), CoinPair, config, init, main, coin, update, view)
+module Main exposing (Model, Msg(..), CoinPair, config, init, main, update, view)
 
 import Browser
 import Html exposing (Html, div, h1, input, text, button)
 import Html.Attributes exposing (placeholder)
 import Html.Events exposing (onInput, onClick)
 import Table
+
+import Basics exposing (round)
 
 import Http
 import Json.Decode as Decode
@@ -13,7 +15,7 @@ import Debug
 
 -- json
 
-type alias CoinPair = { pair: String, price : Float }
+type alias CoinPair = { pair: String, price: Float, rsi_15m: Int }
 
 getCoinList : Cmd Msg
 getCoinList =
@@ -29,9 +31,11 @@ decodeCoinList =
 
 decodeCoinPair : Decode.Decoder CoinPair
 decodeCoinPair =
-  Decode.map2 CoinPair
-    (Decode.field "pair" Decode.string)
-    (Decode.field "price" Decode.float)
+    Decode.map3 CoinPair
+        (Decode.field "pair" Decode.string)
+        (Decode.field "price" Decode.float)
+        (Decode.field "rsi_15m" (Decode.oneOf [Decode.float, Decode.null 0.0])
+            |> Decode.andThen (\rsi -> Decode.succeed(round rsi)))
 
 -- main
 
@@ -136,16 +140,18 @@ config =
         { toId = .pair
         , toMsg = SetTableState
         , columns =
-            [ Table.stringColumn "Pair" .pair
-            , Table.floatColumn "Price" .price
+            [
+                Table.stringColumn "Pair" .pair,
+                Table.floatColumn "Price" .price,
+                Table.intColumn "RSI 15m" .rsi_15m
             ]
         }
 
 -- PEOPLE
 
-coin : List CoinPair
-coin =
-    [
-        CoinPair "ADABTC" 40,
-        CoinPair "NULSBTC" 400
-    ]
+--coin : List CoinPair
+--coin =
+--    [
+--        CoinPair "ADABTC" 40,
+--        CoinPair "NULSBTC" 400
+--    ]

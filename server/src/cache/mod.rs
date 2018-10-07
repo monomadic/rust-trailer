@@ -1,4 +1,5 @@
-use std::collections::HashMap;
+#![allow(dead_code)]
+// use std::collections::HashMap;
 
 // struct RSICache {
     
@@ -9,14 +10,28 @@ use std::collections::HashMap;
 use rusqlite;
 use trailer::models::*;
 
-pub fn get_all_pairs(conn: &rusqlite::Connection) -> Result<Vec<(String, f64)>, rusqlite::Error> {
-    let mut query = conn.prepare("SELECT pair, price FROM pairs;")?;
+pub fn get_all_pairs(conn: &rusqlite::Connection) -> Result<Vec<(String, f64, Option<f64>)>, rusqlite::Error> {
+    let mut query = conn.prepare("SELECT pair, price, rsi_15m FROM pairs;")?;
     
     let results = query.query_map(&[], |row| {
-        (row.get::<_,String>(0), row.get::<_,f64>(1))
-    })?.filter(|r|r.is_ok()).map(|r|r.unwrap()).collect();
+        (
+            row.get::<_,String>(0),
+            row.get::<_,f64>(1),
+            row.get::<_,Option<f64>>(2),
+        )
+    })?.filter(|r|r.is_ok()).map(|r|r.expect("5566")).collect();
 
     Ok(results)
+}
+
+pub fn delete_pair(conn: &rusqlite::Connection, pair: &str) -> Result<i32, ::rusqlite::Error> {
+    let mut query = conn.prepare("DELETE * FROM prices WHERE pair=?1;")?;
+    Ok(query.execute(&[&pair])?)
+}
+
+pub fn delete_candles_for(conn: &rusqlite::Connection, pair: &str) -> Result<i32, ::rusqlite::Error> {
+    let mut query = conn.prepare("DELETE * FROM klines WHERE pair=?1;")?;
+    Ok(query.execute(&[&pair])?)
 }
 
 pub fn get_all_candles(conn: &rusqlite::Connection) -> Vec<(String, Vec<Candlestick>)> {
@@ -40,7 +55,7 @@ pub fn get_all_candles(conn: &rusqlite::Connection) -> Vec<(String, Vec<Candlest
     vec![("ADABTC".to_string(), get_candles_for(conn, "ADABTC").expect("dfdffd"))]
 }
 
-fn get_candles_for(conn: &rusqlite::Connection, pair: &str) -> Result<Vec<Candlestick>, rusqlite::Error> {
+pub fn get_candles_for(conn: &rusqlite::Connection, pair: &str) -> Result<Vec<Candlestick>, rusqlite::Error> {
     let mut query = conn.prepare("SELECT close_price, volume, number_of_trades FROM klines where pair=?1;")?;
     
     let results = query.query_map(&[&pair], |row| {
