@@ -10,16 +10,18 @@
 use rusqlite;
 use trailer::models::*;
 
-pub fn get_all_pairs(conn: &rusqlite::Connection) -> Result<Vec<(String, f64, Option<f64>)>, rusqlite::Error> {
-    let mut query = conn.prepare("SELECT pair, price, rsi_15m FROM pairs;")?;
+pub fn get_all_pairs(conn: &rusqlite::Connection) -> Result<Vec<(String, f64, Option<f64>, Option<f64>, Option<f64>)>, rusqlite::Error> {
+    let mut query = conn.prepare("SELECT pair, price, rsi_15m, rsi_1h, rsi_1d FROM pairs;")?;
     
     let results = query.query_map(&[], |row| {
         (
             row.get::<_,String>(0),
             row.get::<_,f64>(1),
             row.get::<_,Option<f64>>(2),
+            row.get::<_,Option<f64>>(3),
+            row.get::<_,Option<f64>>(4),
         )
-    })?.filter(|r|r.is_ok()).map(|r|r.expect("5566")).collect();
+    })?.filter(|r|r.is_ok()).map(|r|r.expect("sdfsdfdsfds")).collect();
 
     Ok(results)
 }

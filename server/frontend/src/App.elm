@@ -15,7 +15,7 @@ import Debug
 
 -- json
 
-type alias CoinPair = { pair: String, price: Float, rsi_15m: Int }
+type alias CoinPair = { pair: String, price: Float, rsi_15m: Int, rsi_1h: Int, rsi_1d: Int }
 
 getCoinList : Cmd Msg
 getCoinList =
@@ -31,10 +31,14 @@ decodeCoinList =
 
 decodeCoinPair : Decode.Decoder CoinPair
 decodeCoinPair =
-    Decode.map3 CoinPair
+    Decode.map5 CoinPair
         (Decode.field "pair" Decode.string)
         (Decode.field "price" Decode.float)
         (Decode.field "rsi_15m" (Decode.oneOf [Decode.float, Decode.null 0.0])
+            |> Decode.andThen (\rsi -> Decode.succeed(round rsi)))
+        (Decode.field "rsi_1h" (Decode.oneOf [Decode.float, Decode.null 0.0])
+            |> Decode.andThen (\rsi -> Decode.succeed(round rsi)))
+        (Decode.field "rsi_1d" (Decode.oneOf [Decode.float, Decode.null 0.0])
             |> Decode.andThen (\rsi -> Decode.succeed(round rsi)))
 
 -- main
@@ -143,7 +147,9 @@ config =
             [
                 Table.stringColumn "Pair" .pair,
                 Table.floatColumn "Price" .price,
-                Table.intColumn "RSI 15m" .rsi_15m
+                Table.intColumn "RSI 15m" .rsi_15m,
+                Table.intColumn "RSI 1h" .rsi_1h,
+                Table.intColumn "RSI 1d" .rsi_1d
             ]
         }
 
