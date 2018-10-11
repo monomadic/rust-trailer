@@ -22,9 +22,9 @@ pub fn row(presenter: PositionPresenter) -> String {
     let position = presenter.position.clone();
 
     format!("{symbol:12}{state:<9}{size:<32}{upnl:50}{rpnl:<50}{entry_price:<16.8}{exit_price:<16}\n",
-        symbol                      = position.symbol,
+        symbol                      = position.symbol(),
         state                       = position_state(position.state()),
-        size                        = position_size(presenter.position.size(), presenter.size_in_btc(), presenter.size_in_usd()),
+        size                        = position_size(presenter.position.remaining_quantity(), presenter.current_value_in_btc(), presenter.current_value_in_usd()),
         upnl                        = unrealised_profit_loss(presenter.clone()),
         rpnl                        = realised_profit_loss(presenter.clone()),
         entry_price                 = position.entry_price(),
@@ -36,9 +36,9 @@ pub fn row_compact(presenter: PositionPresenter) -> String {
     let position = presenter.position.clone();
 
     format!("{symbol:12}{state:<9}{size:<20}{upnl:20}{rpnl:<20}{entry_price:<16.8}{exit_price:<16}\n",
-        symbol                      = position.symbol,
+        symbol                      = position.symbol(),
         state                       = position_state(position.state()),
-        size                        = format!("{:.2} btc (${:.0})", presenter.size_in_btc(), presenter.size_in_usd()),
+        size                        = format!("{:.2} btc (${:.0})", presenter.current_value_in_btc(), presenter.current_value_in_usd()),
         upnl                        = print_price_usd(presenter.percent_change(), presenter.unrealised_profit_usd()),
         rpnl                        = price_or_nothing(presenter),
         entry_price                 = position.entry_price(),

@@ -29,8 +29,9 @@ impl Order {
 // reduce all orders with same price together (technically different orders from the order book)
 pub fn compact_orders(orders: Vec<Order>) -> Vec<Order> {
     let mut grouped_orders = Vec::new();
+    let mut orders = orders;
 
-    if let Some(first_order) = orders.first() {
+    if let Some(first_order) = orders.pop() {
         let mut current_order = first_order.clone();
 
         for order in orders.clone() {
@@ -44,6 +45,35 @@ pub fn compact_orders(orders: Vec<Order>) -> Vec<Order> {
         grouped_orders.push(current_order.clone());
     }
     grouped_orders
+}
+
+#[test]
+fn test_compact_orders_1() {
+    fn order_fixture(order_type: TradeType, qty: f64, price: f64) -> Order {
+        Order{ id: "".to_string(), symbol: "".to_string(), order_type: order_type, qty: qty, price: price }
+    }
+
+    let orders = compact_orders(vec![
+        order_fixture(TradeType::Buy, 1.0, 100.0),
+    ]);
+
+    assert_eq!(orders.len(), 1);
+    assert_eq!(orders.first().unwrap().qty, 1.0);
+}
+
+#[test]
+fn test_compact_orders_2() {
+    fn order_fixture(order_type: TradeType, qty: f64, price: f64) -> Order {
+        Order{ id: "".to_string(), symbol: "".to_string(), order_type: order_type, qty: qty, price: price }
+    }
+
+    let orders = compact_orders(vec![
+        order_fixture(TradeType::Buy, 1.0, 100.0),
+        order_fixture(TradeType::Buy, 1.0, 100.0),
+    ]);
+
+    assert_eq!(orders.len(), 1);
+    assert_eq!(orders.first().unwrap().qty, 2.0);
 }
 
 // group/average orders into a grouped vector by buy/sell type

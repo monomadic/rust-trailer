@@ -27,8 +27,9 @@ Usage:
     trade <exchange> stop (loss|gain) <symbol> [<amount>] [<price>]
     trade <exchange> b <symbol>
     trade <exchange> dump <symbol>
-    trade <exchange> rsi [--watch] [--all] [<pairs>...]
-    trade <exchange> positions [--watch] [--all] [<pairs>...]
+    trade <exchange> rsi [--watch] [--all] [--triple] [<pairs>...]
+    trade <exchange> mrsi <symbol> [<periods>...]
+    trade <exchange> positions [--watch] [--all] [--orders] [<pairs>...]
 
 Options:
     --debug   show debug object output
@@ -56,12 +57,14 @@ struct Args {
     cmd_trades: bool,
     cmd_b: bool,
     cmd_rsi: bool,
+    cmd_mrsi: bool,
     cmd_positions: bool,
 
-    arg_symbol: Option<String>,
-    arg_amount: Option<f64>,
-    arg_price: Option<f64>,
-    arg_pairs: Option<Vec<String>>,
+    arg_symbol:     Option<String>,
+    arg_amount:     Option<f64>,
+    arg_price:      Option<f64>,
+    arg_pairs:      Option<Vec<String>>,
+    arg_periods:    Option<String>,
 
     flag_debug: bool,
     flag_group: bool,
@@ -71,6 +74,7 @@ struct Args {
     flag_slip: Option<f64>,
     flag_watch: bool,
     flag_all: bool,
+    flag_orders: bool,
 }
 
 use std::sync::Arc;
@@ -234,7 +238,14 @@ pub fn run_docopt() -> Result<String, TrailerError> {
             let mut output_buffer = String::new();
             for position in positions.clone() {
                 match position {
-                    Ok(position) => output_buffer.push_str(&::display::position::row_compact(position.clone())),
+                    Ok(position) => {
+                        output_buffer.push_str(&::display::position::row_compact(position.clone()));
+                        if args.flag_orders {
+                            for order in position.position.orders.clone() {
+                                output_buffer.push_str(&format!("  > {}", ::display::order::row(order.clone())));
+                            }
+                        }
+                    },
                     Err(err) => output_buffer.push_str(&err),
                 }
             }
@@ -268,6 +279,32 @@ pub fn run_docopt() -> Result<String, TrailerError> {
             let rsi_values:Vec<(String, Vec<f64>)> = indicators::rsi_from_chart_data(14, ::trailer::threadpool::chart_data(client.clone(), pairs.clone(), "15m"));
             let rsi_values = indicators::sort_by_last_value(rsi_values);
             ::display::rsi::rsi(rsi_values);
+        }
+
+        if args.cmd_mrsi {
+            let periods = args.arg_periods.clone();
+            let pair = args.arg_symbol.clone().unwrap();
+
+            let rsi_values:Vec<f64> = periods.into_iter().map(|period:String| {
+                *indicators::rsi(14,
+                    &client.chart_data(&pair.clone(), &period).unwrap()
+                        .into_iter()
+                        .map(|c| c.close_price)
+                        .collect()
+                ).last().unwrap()
+            }).collect();
+
+            // print!("{:16}", "");
+            // for period in periods {
+            //     print!("{:6}", period);
+            // }
+            // print!("\n");
+
+            print!("{:16}", pair);
+
+            for rsi_value in rsi_values {
+                print!("{}:{} ", "xx", rsi_value);
+            }
         }
     };
 

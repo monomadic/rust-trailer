@@ -2,9 +2,6 @@ use models::*;
 
 #[derive(Debug, Clone)]
 pub struct Position {
-	pub symbol:                 String,
-	pub buy_order:				Order,
-	pub sell_order:				Option<Order>,
 	pub orders:					Vec<Order>,
 }
 
@@ -28,190 +25,177 @@ impl ::std::fmt::Display for PositionState {
 }
 
 impl Position {
-	pub fn entry_price(&self) -> f64 { self.buy_order.price }
-	pub fn entry_cost(&self) -> f64 { self.buy_order.price * self.buy_order.qty }
+	pub fn symbol(&self) -> String { self.orders.first().unwrap().symbol.clone() }
+
+	pub fn entry_price(&self) -> f64 {
+		self.buy_orders().into_iter().map(|o|o.price).sum::<f64>() / self.buy_orders().len() as f64
+	}
+
+	pub fn exit_price(&self) -> Option<f64> {
+		if self.sell_orders().len() > 0 {
+			Some(self.sell_orders().into_iter().map(|o|o.price).sum())
+		} else { None }
+	}
+
+	pub fn buy_qty(&self) -> f64 { self.buy_orders().into_iter().map(|o|o.qty).sum() }
+	pub fn sell_qty(&self) -> f64 { self.sell_orders().into_iter().map(|o|o.qty).sum() }
+
+	pub fn buy_cost(&self) -> f64 { self.entry_price() * self.buy_qty() }
+	pub fn sell_cost(&self) -> f64 { self.exit_price().unwrap_or(0.0) * self.sell_qty() }
+
+	// todo: memoize
+	pub fn compact_orders(&self) -> Vec<Order> {
+		Order::compact(self.orders.clone())
+	}
+
+	// todo: memoize
+	pub fn buy_orders(&self) -> Vec<Order> {
+		self.compact_orders().into_iter().filter(|o| o.order_type == TradeType::Buy).collect()
+	}
+
+	// todo: memoize
+	pub fn sell_orders(&self) -> Vec<Order> {
+		self.compact_orders().into_iter().filter(|o| o.order_type == TradeType::Sell).collect()
+	}
 	
-	pub fn exit_price(&self) -> Option<f64> { if let Some(ref order) = self.sell_order { Some(order.price) } else { None } }
-	
-	pub fn size(&self) -> f64 {
+	pub fn remaining_quantity(&self) -> f64 {
 		if self.state() == PositionState::Closed {
-			self.buy_order.qty
-		} else {	
-			let sold_qty = self.clone().sell_order.and_then(|o| Some(o.qty)).unwrap_or(0.0);
-			self.buy_order.qty - sold_qty
+			self.buy_qty()
+		} else {
+			self.buy_qty() - self.sell_qty()
 		}
 	}
 
 	pub fn state(&self) -> PositionState {
-		derive_state(self.buy_order.qty, self.clone().sell_order.and_then(|o| Some(o.qty)).unwrap_or(0.0))
+		derive_state(self.buy_qty(), self.sell_qty())
 	}
 
 	pub fn new(orders: Vec<Order>) -> Vec<Position> {
-		// reverse the array cause we want to work backwards.
-		// let orders = orders.into_iter().rev().collect();
-		let mut orders = Order::compact(orders);
-		let mut positions = Vec::new();
-
-		while orders.len() > 0 {
-			if let Some(last_order) = orders.pop() {
-				if let Some((buy_order, sell_order)) = match last_order.order_type {
-					TradeType::Buy => Some((last_order, None)),
-					TradeType::Sell => {
-						if let Some(second_last_order) = orders.pop() {
-							Some((second_last_order, Some(last_order)))
-						} else {
-							// whoops, don't know what to do here, there's just one sell order.
-							None
-						}
-					},
-				} {
-					positions.push(Position {
-						symbol:				buy_order.symbol.clone(),
-						// size:				buy_order.qty,
-						// entry_price:		buy_order.price,
-						// percent_change:		price_percent(buy_order.price, current_price),
-						buy_order:			buy_order,
-						sell_order:			sell_order,
-						orders: 			orders.clone(),
-					})
-				}
-			};
-		}
-
-		positions
-
-		// println!("{:#?}", Order::group(orders));
-
-		// let (state, unrealised_profit) = match last_order.order_type {
-		// 	TradeType::Buy => { return None },
-		// 	// 	(
-		// 	// 	PositionState::Open,
-		// 	// 	(order.qty * order.price) - (order.qty * current_price),
-		// 	// ),
-		// 	TradeType::Sell => (
-		// 		PositionState::Closed,
-		// 		(order.qty * current_price) - (order.qty * order.price),
-		// 	),
-		// };
-
-		// let unrealised_profit = match last_order.order_type {
-		// 	TradeType::Buy => (order.qty * order.price) - (order.qty * current_price),
-		// 	TradeType::Sell => (order.qty * current_price) - (order.qty * order.price),
-		// };
-
-
-
-
-		// while order in orders.next() {
-		// 	match order.trade_type {
-		// 		TradeType::Sell => 
-		// 	}
-		// }
+		group_orders_by_positions(orders).into_iter().map(|orders| {
+			Position { orders: orders }
+		}).collect()
 	}
+}
 
-	// pub fn calculate(orders: Vec<Order>, current_price: f64, btc_price: f64, current_balance: Option<f64>) -> Vec<Position> {
-	// 	let balance = current_balance.unwrap_or(0.0);
+pub fn group_orders_by_positions(orders: Vec<Order>) -> Vec<(Vec<Order>)> {
+	let mut positions = Vec::new();
+	let mut current_orders:Vec<Order> = Vec::new();
+	let mut orders:Vec<Order> = orders.into_iter().rev().collect();
 
-	// 	orders.iter().map(|order| {
-	// 		let cost_btc = order.qty * order.price;
-			
-	// 		let potential_profit_btc = match order.order_type {
-	// 			TradeType::Buy => (order.qty * current_price) - cost_btc,
-	// 			TradeType::Sell => cost_btc - (order.qty * current_price),
-	// 		};
+	while let Some(last_order) = orders.pop() {
+		// println!("{:?}", current_orders.clone());
+		match last_order.order_type {
+			TradeType::Buy => {
+				// if the list contains sells, and we've encountered a buy, lets toss it
+				if current_orders.clone().into_iter().filter(|o|o.order_type == TradeType::Sell).collect::<Vec<Order>>().len() > 0 {
+					positions.push(current_orders.clone());
+					current_orders = Vec::new();
+					// println!("{:?}", current_orders.clone());
+				}
+			},
+			TradeType::Sell => {
+			},
+		}
+		current_orders.push(last_order.clone());
+	};
 
-	// 		let potential_profit_percent = match order.order_type {
-	// 			TradeType::Buy => price_percent(order.price, current_price),
-	// 			TradeType::Sell => -price_percent(order.price, current_price),
-	// 		};
-
-	// 		Position {
-	// 			symbol:                     order.symbol.to_string(),
-	// 			trade_type:                 order.order_type,
-	// 			cost_btc:                   cost_btc,
-	// 			cost_usd:                   order.price * order.qty * btc_price,
-	// 			qty:                        order.qty,
-	// 			sale_price:                 order.price,
-	// 			current_price:              current_price,
-	// 			potential_profit_btc:       potential_profit_btc,
-	// 			potential_profit_percent:   potential_profit_percent,
-	// 			potential_profit_usd:       potential_profit_btc * btc_price,
-	// 			balance:                   	balance,
-	// 			// held_btc:                   balance * order.price,
-	// 		}
-	// 	}).collect()
-	// }
-
-	// pub fn unrealised_profit_usd(&self, usd_price: f64) -> f64 { }
-	// pub fn cost_usd(&self, usd_price: f64) -> f64 { (price * order.qty) * btc_price }
+	positions.push(current_orders.clone());
+	positions
 }
 
 pub fn derive_state(buy_qty: f64, sell_qty: f64) -> PositionState {
-	// let sell_qty = ::math::round::ceil(sell_qty, 2);
-	// let buy_qty = ::math::round::ceil(buy_qty, 2);
 	if sell_qty == 0.0 { return PositionState::Open };
 	if buy_qty == sell_qty { return PositionState::Closed };
 	if sell_qty < buy_qty { return PositionState::Partial };
 	PositionState::Irreconciled
 }
 
-// #[test]
-// fn test_price_percent() {
-// 	assert_eq!(-90.0, derive_state(100., 10.));
-// 	assert_eq!(100.0, derive_state(100., 200.));
-// 	assert_eq!(100.0, derive_state(20., 40.));
-// 	assert_eq!(-50.0, derive_state(40., 20.));
-// }
-
 pub fn price_percent(entry_price: f64, exit_price: f64) -> f64 {
 	if entry_price < exit_price { (100. / entry_price * exit_price) - 100. }
 	else { -(100. + -100. / entry_price * exit_price) }
 }
 
-// #[cfg(test)]
-// mod tests {
-// 	use super::*;
+fn order_fixture(order_type: TradeType, qty: f64, price: f64) -> Order {
+    Order{ id: "".to_string(), symbol: "".to_string(), order_type: order_type, qty: qty, price: price }
+}
 
-// 	#[test]
-// 	fn test_price_percent() {
-// 		assert_eq!(-90.0, price_percent(100., 10.));
-// 		assert_eq!(100.0, price_percent(100., 200.));
-// 		assert_eq!(100.0, price_percent(20., 40.));
-// 		assert_eq!(-50.0, price_percent(40., 20.));
-// 	}
+#[test]
+fn test_group_orders_by_positions_1() {
+    let orders = group_orders_by_positions(vec![
+        order_fixture(TradeType::Buy, 10.0, 100.0)
+    ]);
 
-// 	#[test]
-// 	fn test_position_summing() {
-// 		let mut orders = Vec::new();
-// 		orders.push(Order{
-// 			id:             "test_id".to_string(),
-// 			symbol:         "TESTCOIN".to_string(),
-// 			order_type:     TradeType::Buy,
-// 			qty:            10.0,
-// 			price:          1000.0,
-// 		});
-// 		orders.push(Order{
-// 			id:             "test_id".to_string(),
-// 			symbol:         "TESTCOIN".to_string(),
-// 			order_type:     TradeType::Sell,
-// 			qty:            10.0,
-// 			price:          1000.0,
-// 		});
+    assert_eq!(orders.len(), 1);
+    assert_eq!(orders.first().unwrap().len(), 1);
+}
 
-// 		let mut positions:Vec<Position> = Position::calculate(orders, 1100.0, 7000.0, None).into_iter().rev().collect();
+#[test]
+fn test_group_orders_by_positions_2() {
+    let orders = group_orders_by_positions(vec![
+        order_fixture(TradeType::Buy, 1.0, 100.0),
+        order_fixture(TradeType::Buy, 2.0, 100.0),
+    ]);
 
-// 		assert_eq!(2, positions.len());
+    assert_eq!(orders.len(), 1);
+    assert_eq!(orders.first().unwrap().len(), 2);
+}
 
-// 		let first_position = positions.pop().unwrap();
+#[test]
+fn test_group_orders_by_positions_3() {
+    let orders = group_orders_by_positions(vec![
+        order_fixture(TradeType::Buy, 1.0, 100.0),
+        order_fixture(TradeType::Buy, 2.0, 100.0),
+        order_fixture(TradeType::Sell, 3.0, 100.0),
+    ]);
 
-// 		assert_eq!(1000.0, first_position.potential_profit_btc);
-// 		assert_eq!(10.0, first_position.potential_profit_percent);
+    assert_eq!(orders.len(), 1);
+    assert_eq!(orders.first().unwrap().len(), 3);
+}
 
-// 		let second_position = positions.pop().unwrap();
-// 		assert_eq!(-1000.0, second_position.potential_profit_btc);
-// 	}
-// }
+#[test]
+fn test_group_orders_by_positions_4() {
+    let orders = group_orders_by_positions(vec![
+        order_fixture(TradeType::Buy, 1.0, 100.0),
+        order_fixture(TradeType::Sell, 2.0, 100.0),
+        order_fixture(TradeType::Buy, 3.0, 100.0),
+    ]);
 
-// fn reverse_vec<T>(vec: Vec<T>) -> Vec<T> {
-// 	vec.into_iter().rev().collect()
-// }
+    assert_eq!(orders.len(), 2);
+    assert_eq!(orders.first().unwrap().len(), 2);
+    assert_eq!(orders.last().unwrap().len(), 1);
+}
+
+#[test]
+fn test_positions_1() {
+    let positions = Position::new(vec![
+        order_fixture(TradeType::Buy, 10.0, 100.0)
+    ]);
+
+    assert_eq!(positions.len(), 1);
+
+
+    let first_position = positions.first().unwrap();
+    println!("{:?}", first_position.buy_orders());
+    assert_eq!(first_position.orders.len(), 1);
+    assert_eq!(first_position.buy_orders().len(), 1);
+    assert_eq!(first_position.entry_price(), 100.0);
+    assert_eq!(first_position.exit_price(), None);
+    assert_eq!(first_position.buy_qty(), 10.0);
+}
+
+#[test]
+fn test_positions_2() {
+    let positions = Position::new(vec![
+        order_fixture(TradeType::Buy, 10.0, 100.0),
+        order_fixture(TradeType::Buy, 10.0, 200.0),
+    ]);
+
+    assert_eq!(positions.len(), 1);
+
+    let first_position = positions.first().unwrap();
+    assert_eq!(first_position.orders.len(), 2);
+    assert_eq!(first_position.entry_price(), 150.0);
+    assert_eq!(first_position.exit_price(), None);
+    assert_eq!(first_position.buy_qty(), 20.0);
+    assert_eq!(first_position.sell_qty(), 0.0);
+}
