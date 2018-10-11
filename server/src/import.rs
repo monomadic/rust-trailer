@@ -6,6 +6,15 @@ use trailer::models::*;
 
 mod cache;
 
+use std::collections::HashMap;
+pub fn hashmap_ok<T,E>(results: HashMap<String, Result<T,E>>) -> Vec<(String, T)> where E: ::std::fmt::Debug {
+    results.into_iter().filter(|(_p,r)|r.is_ok()).map(|(p,r)|(p, r.unwrap())).collect()
+}
+
+// pub fn hashmap_ok<T,E>(results: Vec<Result<T,E>>) -> Vec<T> where E: ::std::fmt::Debug {
+//     results.into_iter().filter(|r|r.is_ok()).map(|r|r.unwrap()).collect()
+// }
+
 pub fn main() {
     println!("import api data");
 
@@ -17,54 +26,54 @@ pub fn main() {
 
     let client = ::trailer::exchanges::binance::connect("9N5duztMdrYfYg2ErhSDV837s8xfBIqF8D7mxpJTKiujvSwoIDI52UguhhkyRQBg", "OG6avXJGOeDt5Phbp150zeEgwjQZpgkXdrp8z2vwPv5bWlHuNFLrK4uAGidnpAIU");
 
-    let prices = client.prices().expect("fetch prices failed");
+    let prices:Prices = client.prices().expect("fetch prices failed");
+    let symbols:Vec<String> = prices.clone().into_iter().filter(|(s,_p)|s.contains("BTC")).map(|(s,_p)|s).collect();
 
-    for (pair, price) in prices {
-        let _ = cache::delete_pair(&conn, &pair.clone());
-        insert_pair(&conn, (pair.clone(), price.clone()), "binance").expect("price to insert");
-        println!("inserted {:?}", price);
+    for period in ["15m", "1h", "1d"].iter() {
+        println!("getting {} data for {} symbols", period, symbols.len());
 
-        let closing_prices:Vec<f64> = client.chart_data(&pair, "15m").expect("rsi to work").into_iter().map(|price| price.close_price).collect();
-        let rsi = ::trailer::indicators::rsi(14, &closing_prices);
-        let rsi = rsi.last().expect("an rsi value");
+        let candles:Vec<(String,Vec<Candlestick>)> = hashmap_ok
+            (::trailer::threadpool::chart_data_2(::std::sync::Arc::new(client.clone()), symbols.clone(), period));
 
-        match update_rsi(&conn, &pair, rsi.clone()) {
-            Ok(_) => println!("updated rsi for {}, {}", pair, rsi),
-            Err(why) => println!("error updating rsi: {:?}", why),
-        };
+        for (pair, candles) in candles {
+            print!("\nretrieving: {}", pair);
+            let closing_prices:Vec<f64> = candles.into_iter().map(|price| price.close_price).collect();
+            let last_price = closing_prices.last().expect("price to exist");
+            
+            insert_pair(&conn, (pair.clone(), *last_price), "binance").expect("price to insert");
+
+            let rsi = ::trailer::indicators::rsi(14, &closing_prices);
+            let rsi:f64 = match rsi.last() {
+                Some(rsi) => *rsi,
+                None => { println!("error retrieving rsi values for {}, {}, closing_prices:  {:#?}", pair, period, closing_prices); 0.0 }
+            };
+
+            match update_rsi(&conn, &pair, &period, rsi.clone()) {
+                Ok(_) => print!(" OK: {}, {}", pair, rsi),
+                Err(why) => println!("error updating rsi: {:?}", why),
+            };
+        }
     }
 
-    // let pairs = vec!["XEMBTC".to_string(), "ADABTC".to_string()];
-    // let data = ::trailer::threadpool::chart_data(::std::sync::Arc::new(client.clone()), pairs.clone(), "15m");
+    // for (pair, price) in prices.clone() {
+    //     let _ = cache::delete_pair(&conn, &pair.clone());
+    //     insert_pair(&conn, (pair.clone(), price.clone()), "binance").expect("price to insert");
+    //     println!("inserted {:?}", price);
 
-    // for (pair, candlestick_result) in data {
-    //     if let Ok(candles) = candlestick_result {
+    //     for period in ["15m", "1h", "1d"].iter() {
+    //         let closing_prices:Vec<f64> = client.chart_data(&pair, period).expect("rsi to work").into_iter().map(|price| price.close_price).collect();
 
-    //         for candle in candles.clone() {
-    //             match insert_candle(&conn, candle, &pair, "15m", "binance") {
-    //                 Ok(_) => print!("."),
-    //                 Err(why) => println!("error: {:?}", why),
-    //             }
-    //         }
+    //         let rsi = ::trailer::indicators::rsi(14, &closing_prices);
+    //         let rsi:f64 = match rsi.last() {
+    //             Some(rsi) => *rsi,
+    //             None => { println!("error retrieving rsi values for {}, {}, closing_prices:  {:#?}", pair, period, closing_prices); 0.0 }
+    //         };
 
-    //         println!("inserted {}", pair);
-
-    //         let candles = candles.clone()
-    //             .into_iter()
-    //             .map(|c| c.close_price)
-    //             .collect();
-
-    //         let rsi = ::trailer::indicators::rsi(14, &candles);
-    //         let rsi = rsi.last().expect("an rsi value");
-
-    //         match update_rsi(&conn, &pair, rsi.clone()) {
+    //         match update_rsi(&conn, &pair, &period, rsi.clone()) {
     //             Ok(_) => println!("updated rsi for {}, {}", pair, rsi),
     //             Err(why) => println!("error updating rsi: {:?}", why),
     //         };
-
-
-
-    //     } else { println!("error inserting: {}", pair); }
+    //     }
     // }
 }
 
@@ -72,12 +81,12 @@ fn delete_all_from(conn: &rusqlite::Connection, table: &str) -> Result<i32, rusq
     Ok(conn.execute(&format!("DELETE FROM {}", table), &[])?)
 }
 
-fn update_rsi(conn: &rusqlite::Connection, pair: &str, rsi_15m: f64) -> Result<i32, rusqlite::Error> {
-    Ok(conn.execute("UPDATE pairs
-        SET rsi_15m=(?1)
-        WHERE pair=(?2)",
+fn update_rsi(conn: &rusqlite::Connection, pair: &str, period: &str, value: f64) -> Result<i32, rusqlite::Error> {
+    Ok(conn.execute(&format!("UPDATE pairs
+        SET rsi_{}=(?1)
+        WHERE pair=(?2)", period),
       &[
-        &rsi_15m.to_string(),
+        &value.to_string(),
         &pair,
       ])?
     )
@@ -85,6 +94,7 @@ fn update_rsi(conn: &rusqlite::Connection, pair: &str, rsi_15m: f64) -> Result<i
 
 fn insert_pair(conn: &rusqlite::Connection, price: Price, exchange: &str) -> Result<i32, rusqlite::Error> {
     let (pair, price) = price;
+    let _ = cache::delete_pair(&conn, &pair.clone());
     Ok(conn.execute("INSERT INTO pairs (pair, price, exchange)
       VALUES (?1, ?2, ?3)",
       &[

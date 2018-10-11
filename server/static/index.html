@@ -4977,64 +4977,30 @@ var author$project$Main$CoinPair = F5(
 		return {pair: pair, price: price, rsi_15m: rsi_15m, rsi_1d: rsi_1d, rsi_1h: rsi_1h};
 	});
 var elm$core$Basics$round = _Basics_round;
-var elm$json$Json$Decode$andThen = _Json_andThen;
-var elm$json$Json$Decode$field = _Json_decodeField;
 var elm$json$Json$Decode$float = _Json_decodeFloat;
-var elm$json$Json$Decode$map5 = _Json_map5;
+var elm$json$Json$Decode$map = _Json_map1;
 var elm$json$Json$Decode$null = _Json_decodeNull;
 var elm$json$Json$Decode$oneOf = _Json_oneOf;
+var author$project$Main$decodeFloatAsInt = A2(
+	elm$json$Json$Decode$map,
+	elm$core$Basics$round,
+	elm$json$Json$Decode$oneOf(
+		_List_fromArray(
+			[
+				elm$json$Json$Decode$float,
+				elm$json$Json$Decode$null(0.0)
+			])));
+var elm$json$Json$Decode$field = _Json_decodeField;
+var elm$json$Json$Decode$map5 = _Json_map5;
 var elm$json$Json$Decode$string = _Json_decodeString;
-var elm$json$Json$Decode$succeed = _Json_succeed;
 var author$project$Main$decodeCoinPair = A6(
 	elm$json$Json$Decode$map5,
 	author$project$Main$CoinPair,
 	A2(elm$json$Json$Decode$field, 'pair', elm$json$Json$Decode$string),
 	A2(elm$json$Json$Decode$field, 'price', elm$json$Json$Decode$float),
-	A2(
-		elm$json$Json$Decode$andThen,
-		function (rsi) {
-			return elm$json$Json$Decode$succeed(
-				elm$core$Basics$round(rsi));
-		},
-		A2(
-			elm$json$Json$Decode$field,
-			'rsi_15m',
-			elm$json$Json$Decode$oneOf(
-				_List_fromArray(
-					[
-						elm$json$Json$Decode$float,
-						elm$json$Json$Decode$null(0.0)
-					])))),
-	A2(
-		elm$json$Json$Decode$andThen,
-		function (rsi) {
-			return elm$json$Json$Decode$succeed(
-				elm$core$Basics$round(rsi));
-		},
-		A2(
-			elm$json$Json$Decode$field,
-			'rsi_1h',
-			elm$json$Json$Decode$oneOf(
-				_List_fromArray(
-					[
-						elm$json$Json$Decode$float,
-						elm$json$Json$Decode$null(0.0)
-					])))),
-	A2(
-		elm$json$Json$Decode$andThen,
-		function (rsi) {
-			return elm$json$Json$Decode$succeed(
-				elm$core$Basics$round(rsi));
-		},
-		A2(
-			elm$json$Json$Decode$field,
-			'rsi_1d',
-			elm$json$Json$Decode$oneOf(
-				_List_fromArray(
-					[
-						elm$json$Json$Decode$float,
-						elm$json$Json$Decode$null(0.0)
-					])))));
+	A2(elm$json$Json$Decode$field, 'rsi_15m', author$project$Main$decodeFloatAsInt),
+	A2(elm$json$Json$Decode$field, 'rsi_1h', author$project$Main$decodeFloatAsInt),
+	A2(elm$json$Json$Decode$field, 'rsi_1d', author$project$Main$decodeFloatAsInt));
 var elm$json$Json$Decode$list = _Json_decodeList;
 var author$project$Main$decodeCoinList = elm$json$Json$Decode$list(author$project$Main$decodeCoinPair);
 var elm$http$Http$Internal$EmptyBody = {$: 'EmptyBody'};
@@ -5868,8 +5834,8 @@ var billstclair$elm_sortable_table$Table$HtmlDetails = F2(
 	function (attributes, children) {
 		return {attributes: attributes, children: children};
 	});
-var elm$json$Json$Decode$map = _Json_map1;
 var elm$json$Json$Decode$map2 = _Json_map2;
+var elm$json$Json$Decode$succeed = _Json_succeed;
 var elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
 	switch (handler.$) {
 		case 'Normal':
@@ -6392,15 +6358,6 @@ var author$project$Main$view = function (_n0) {
 		_List_fromArray(
 			[
 				A2(
-				elm$html$Html$input,
-				_List_fromArray(
-					[
-						elm$html$Html$Attributes$placeholder('Search by Name'),
-						elm$html$Html$Events$onInput(author$project$Main$SetQuery)
-					]),
-				_List_Nil),
-				A3(billstclair$elm_sortable_table$Table$view, author$project$Main$config, tableState, acceptablePeople),
-				A2(
 				elm$html$Html$div,
 				_List_Nil,
 				_List_fromArray(
@@ -6413,9 +6370,18 @@ var author$project$Main$view = function (_n0) {
 							]),
 						_List_fromArray(
 							[
-								elm$html$Html$text('Get Symbols')
+								elm$html$Html$text('Refresh')
 							]))
-					]))
+					])),
+				A2(
+				elm$html$Html$input,
+				_List_fromArray(
+					[
+						elm$html$Html$Attributes$placeholder('Search by Name'),
+						elm$html$Html$Events$onInput(author$project$Main$SetQuery)
+					]),
+				_List_Nil),
+				A3(billstclair$elm_sortable_table$Table$view, author$project$Main$config, tableState, acceptablePeople)
 			]));
 };
 var elm$browser$Browser$External = function (a) {

@@ -135,9 +135,9 @@ view { coins, tableState, query } =
     in
     div []
         [
+            div [][ button [ onClick GetCoinPair ] [ text "Refresh" ]],
             input [ placeholder "Search by Name", onInput SetQuery ] [],
-            Table.view config tableState acceptablePeople,
-            div [][ button [ onClick GetCoinPair ] [ text "Get Symbols" ]]
+            Table.view config tableState acceptablePeople
         ]
 
 config : Table.Config CoinPair Msg
