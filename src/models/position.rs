@@ -2,7 +2,7 @@ use models::*;
 
 #[derive(Debug, Clone)]
 pub struct Position {
-	pub orders:					Vec<Order>,
+	pub orders: Vec<Order>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -166,6 +166,25 @@ fn test_group_orders_by_positions_4() {
 }
 
 #[test]
+fn test_group_orders_by_positions_5() {
+    let orders = group_orders_by_positions(vec![
+        order_fixture(TradeType::Buy, 1.0, 100.0),
+        order_fixture(TradeType::Sell, 2.0, 100.0),
+        order_fixture(TradeType::Buy, 3.0, 100.0),
+        order_fixture(TradeType::Sell, 4.0, 100.0),
+        order_fixture(TradeType::Buy, 5.0, 100.0),
+    ]);
+
+    assert_eq!(orders.len(), 3);
+
+    let first_order = orders.first().unwrap();
+    let last_order = orders.last().unwrap();
+
+    assert_eq!(first_order.len(), 2);
+    assert_eq!(last_order.len(), 1);
+}
+
+#[test]
 fn test_positions_1() {
     let positions = Position::new(vec![
         order_fixture(TradeType::Buy, 10.0, 100.0)
@@ -198,4 +217,20 @@ fn test_positions_2() {
     assert_eq!(first_position.exit_price(), None);
     assert_eq!(first_position.buy_qty(), 20.0);
     assert_eq!(first_position.sell_qty(), 0.0);
+}
+
+#[test]
+fn test_positions_3() {
+    let positions = Position::new(vec![
+        order_fixture(TradeType::Buy, 1.0, 100.0),
+        order_fixture(TradeType::Sell, 2.0, 100.0),
+        order_fixture(TradeType::Buy, 3.0, 100.0),
+        order_fixture(TradeType::Sell, 4.0, 100.0),
+        order_fixture(TradeType::Buy, 5.0, 100.0),
+    ]);
+
+    assert_eq!(positions.len(), 3);
+
+    let last_position = positions.last().unwrap();
+    assert_eq!(last_position.orders.len(), 1);
 }
