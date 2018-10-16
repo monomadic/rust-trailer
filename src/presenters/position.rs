@@ -1,5 +1,4 @@
 use models::*;
-// use presenters::*;
 
 #[derive(Debug, Clone)]
 pub struct PositionPresenter {
