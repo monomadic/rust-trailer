@@ -50,12 +50,12 @@ impl Position {
 
 	// todo: memoize
 	pub fn buy_orders(&self) -> Vec<Order> {
-		self.compact_orders().into_iter().filter(|o| o.order_type == TradeType::Buy).collect()
+		self.orders.clone().into_iter().filter(|o| o.order_type == TradeType::Buy).collect()
 	}
 
 	// todo: memoize
 	pub fn sell_orders(&self) -> Vec<Order> {
-		self.compact_orders().into_iter().filter(|o| o.order_type == TradeType::Sell).collect()
+		self.orders.clone().into_iter().filter(|o| o.order_type == TradeType::Sell).collect()
 	}
 	
 	pub fn remaining_quantity(&self) -> f64 {
@@ -71,8 +71,8 @@ impl Position {
 	}
 
 	pub fn new(orders: Vec<Order>) -> Vec<Position> {
-		group_orders_by_positions(orders).into_iter().map(|orders| {
-			Position { orders: orders }
+		group_orders_by_positions(orders).into_iter().map(|order_group| {
+			Position { orders: order_group }
 		}).collect()
 	}
 }
@@ -83,14 +83,12 @@ pub fn group_orders_by_positions(orders: Vec<Order>) -> Vec<(Vec<Order>)> {
 	let mut orders:Vec<Order> = orders.into_iter().rev().collect();
 
 	while let Some(last_order) = orders.pop() {
-		// println!("{:?}", current_orders.clone());
 		match last_order.order_type {
 			TradeType::Buy => {
 				// if the list contains sells, and we've encountered a buy, lets toss it
 				if current_orders.clone().into_iter().filter(|o|o.order_type == TradeType::Sell).collect::<Vec<Order>>().len() > 0 {
 					positions.push(current_orders.clone());
 					current_orders = Vec::new();
-					// println!("{:?}", current_orders.clone());
 				}
 			},
 			TradeType::Sell => {
@@ -197,6 +195,7 @@ fn test_positions_1() {
     println!("{:?}", first_position.buy_orders());
     assert_eq!(first_position.orders.len(), 1);
     assert_eq!(first_position.buy_orders().len(), 1);
+    assert_eq!(first_position.buy_qty(), 10.0);
     assert_eq!(first_position.entry_price(), 100.0);
     assert_eq!(first_position.exit_price(), None);
     assert_eq!(first_position.buy_qty(), 10.0);
@@ -213,6 +212,9 @@ fn test_positions_2() {
 
     let first_position = positions.first().unwrap();
     assert_eq!(first_position.orders.len(), 2);
+    assert_eq!(first_position.buy_orders().len(), 2);
+    assert_eq!(first_position.sell_orders().len(), 0);
+    assert_eq!(first_position.buy_qty(), 20.0);
     assert_eq!(first_position.entry_price(), 150.0);
     assert_eq!(first_position.exit_price(), None);
     assert_eq!(first_position.buy_qty(), 20.0);
@@ -227,10 +229,17 @@ fn test_positions_3() {
         order_fixture(TradeType::Buy, 3.0, 100.0),
         order_fixture(TradeType::Sell, 4.0, 100.0),
         order_fixture(TradeType::Buy, 5.0, 100.0),
+        order_fixture(TradeType::Buy, 6.0, 200.0),
     ]);
 
     assert_eq!(positions.len(), 3);
 
+    let first_position = positions.first().unwrap();
+    assert_eq!(first_position.buy_orders().len(), 1);
+    assert_eq!(first_position.buy_qty(), 1.0);
+
     let last_position = positions.last().unwrap();
-    assert_eq!(last_position.orders.len(), 1);
+    assert_eq!(last_position.orders.len(), 2);
+    assert_eq!(last_position.buy_orders().len(), 2);
+    assert_eq!(last_position.buy_qty(), 11.0);
 }
