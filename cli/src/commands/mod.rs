@@ -4,7 +4,6 @@
 use trailer;
 use trailer::exchanges::*;
 use trailer::error::*;
-use trailer::presenters::*;
 use trailer::indicators;
 
 use docopt::Docopt;
@@ -13,6 +12,7 @@ mod stop;
 mod position;
 mod buy_sell;
 mod rsi;
+mod funds;
 
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 const USAGE: &'static str = "
@@ -118,22 +118,7 @@ pub fn run_docopt() -> Result<String, TrailerError> {
     for (client, config) in clients {
 
         if args.cmd_funds {
-            let mut prices = client.prices()?;
-            // let btc_price = *prices.get(&client.btc_symbol()).unwrap_or(&0.0);
-            let btc_price = *prices.get("BTCUSDT").expect("btc price not found."); // fix this with exchange agnostic value
-
-            let mut funds = FundsPresenter::new(client.funds()?, prices, btc_price);
-
-            if args.flag_sort_by_name {
-                funds.alts.sort_by(|a, b| b.value_in_btc.partial_cmp(&a.value_in_btc).expect("order failed"));
-            } else {
-                funds.alts.sort_by(|a, b| b.value_in_btc.partial_cmp(&a.value_in_btc).expect("order failed"));
-            }
-
-            ::display::title_bar(&format!("{} Balance", client.display()));
-            ::display::funds::show_funds(funds.clone());
-
-            if args.flag_log { ::log::log_funds(funds)? };
+            funds::funds(client.clone(), args.flag_sort_by_name, args.flag_log)?;
         }
 
         if args.cmd_balances {
@@ -221,19 +206,6 @@ pub fn run_docopt() -> Result<String, TrailerError> {
             });
 
             let mut positions = position::positions(client, pairs.clone(), args.flag_all)?;
-            // let ok_positions = positions.into_iter().filter_map(|e| e.ok()).collect();
-
-            if pairs.len() != 1 {
-                positions.sort_by(|a, b| {
-                    match a {
-                        Ok(a) => match b {
-                            Ok(b) => b.percent_change().partial_cmp(&a.percent_change()).expect("sort failed"),
-                            _ => ::std::cmp::Ordering::Less,
-                        },
-                        _ => ::std::cmp::Ordering::Less,
-                    }
-                });
-            }
 
             let mut output_buffer = String::new();
             for position in positions.clone() {

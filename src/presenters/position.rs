@@ -42,7 +42,10 @@ impl PositionPresenter {
 
     pub fn unrealised_profit_btc(&self) -> f64 {
         // price of remaining units at the current price - those units at buy price
-        (self.position.remaining_quantity() * self.current_price) - (self.position.remaining_quantity() * self.position.entry_price())
+        // (self.position.remaining_quantity() * self.current_price) - (self.position.remaining_quantity() * self.position.entry_price())
+
+        self.position.remaining_quantity() * (self.current_price - self.position.entry_price())
+        // self.position.remaining_quantity() * self.current_price
     }
 
     pub fn unrealised_profit_usd(&self) -> f64 {
@@ -50,8 +53,8 @@ impl PositionPresenter {
     }
 
     pub fn realised_profit_btc(&self) -> f64 {
-        if self.position.sell_orders().len() > 0 {
-            self.position.sell_cost() - self.position.buy_cost()
+        if let Some(exit_price) = self.position.exit_price() {
+            (self.position.sell_qty() * exit_price) - (self.position.sell_qty() * self.position.entry_price())
         } else { 0.0 }
     }
 
@@ -73,4 +76,32 @@ pub fn price_percent(entry_price: f64, exit_price: f64) -> f64 {
 
 pub fn total_btc_staked(presenters: Vec<PositionPresenter>) -> f64 {
     presenters.into_iter().map(|a| a.current_value_in_btc()).sum()
+}
+
+// ------ tests
+
+fn order_fixture(order_type: TradeType, qty: f64, price: f64) -> Order {
+    Order{ id: "".to_string(), symbol: "".to_string(), order_type: order_type, qty: qty, price: price }
+}
+
+#[test]
+fn test_position_presenter_state_partial() {
+    let position = Position::new(vec![
+        order_fixture(TradeType::Buy, 2.0, 100.0), // value: 200
+        order_fixture(TradeType::Sell, 1.0, 100.0), // sold: 100 worth, remaining: 100, profit: 0
+    ]);
+
+    let presenter = PositionPresenter {
+        position:           position.first().unwrap().clone(),
+        current_price:      110.0,
+        btc_price_in_usd:   2.0,
+    };
+
+    assert_eq!(presenter.current_value_in_btc(), 110.0);
+    assert_eq!(presenter.current_value_in_usd(), 220.0);
+    assert_eq!(presenter.percent_change(), 10.0);
+    assert_eq!(presenter.total_profit_btc(), 11.0); // current btc value of profit
+    assert_eq!(presenter.total_profit_usd(), 22.0);
+    // assert_eq!(presenter.unrealised_profit_btc(), 20.0);
+    assert_eq!(presenter.realised_profit_btc(), 0.0);
 }

@@ -183,6 +183,28 @@ fn test_group_orders_by_positions_5() {
 }
 
 #[test]
+fn test_group_orders_by_positions_6() {
+    let orders = group_orders_by_positions(vec![
+        order_fixture(TradeType::Buy, 2.0, 100.0),
+        order_fixture(TradeType::Buy, 5.0, 100.0),
+        order_fixture(TradeType::Buy, 3.0, 100.0),
+        order_fixture(TradeType::Sell, 1.0, 100.0),
+        order_fixture(TradeType::Sell, 1.0, 100.0),
+        order_fixture(TradeType::Sell, 8.0, 100.0),
+        order_fixture(TradeType::Buy, 3.0, 100.0),
+        order_fixture(TradeType::Sell, 4.0, 100.0),
+    ]);
+
+    assert_eq!(orders.len(), 2);
+
+    let first_order_group = orders.first().unwrap();
+    let second_order_group = orders.last().unwrap();
+
+    assert_eq!(first_order_group.len(), 6);
+    assert_eq!(second_order_group.len(), 2);
+}
+
+#[test]
 fn test_positions_1() {
     let positions = Position::new(vec![
         order_fixture(TradeType::Buy, 10.0, 100.0)
@@ -242,4 +264,66 @@ fn test_positions_3() {
     assert_eq!(last_position.orders.len(), 2);
     assert_eq!(last_position.buy_orders().len(), 2);
     assert_eq!(last_position.buy_qty(), 11.0);
+}
+
+#[test]
+fn test_positions_state_open() {
+    let positions = Position::new(vec![
+        order_fixture(TradeType::Buy, 1.0, 100.0),
+        order_fixture(TradeType::Buy, 1.0, 100.0),
+    ]);
+    let position = positions.first().unwrap();
+
+    assert_eq!(position.state(), PositionState::Open);
+}
+
+#[test]
+fn test_positions_state_closed() {
+    let positions = Position::new(vec![
+        order_fixture(TradeType::Buy, 1.0, 100.0),
+        order_fixture(TradeType::Sell, 1.0, 100.0),
+    ]);
+    let position = positions.first().unwrap();
+
+    assert_eq!(position.state(), PositionState::Closed);
+}
+
+#[test]
+fn test_positions_state_irec() {
+    let positions = Position::new(vec![
+        order_fixture(TradeType::Buy, 1.0, 100.0),
+        order_fixture(TradeType::Sell, 2.0, 100.0),
+    ]);
+    let position = positions.first().unwrap();
+
+    assert_eq!(position.state(), PositionState::Irreconciled);
+}
+
+#[test]
+fn test_positions_state_partial_1() {
+    let positions = Position::new(vec![
+        order_fixture(TradeType::Buy, 2.0, 100.0),
+        order_fixture(TradeType::Sell, 1.0, 100.0),
+    ]);
+    let position = positions.first().unwrap();
+
+    assert_eq!(position.state(), PositionState::Partial);
+    assert_eq!(position.remaining_quantity(), 1.0);
+}
+
+#[test]
+fn test_positions_state_partial_2() {
+    let positions = Position::new(vec![
+        order_fixture(TradeType::Buy, 2.0, 100.0),
+        order_fixture(TradeType::Buy, 1.0, 100.0),
+        order_fixture(TradeType::Buy, 5.0, 200.0),
+        order_fixture(TradeType::Sell, 1.0, 100.0),
+        order_fixture(TradeType::Sell, 2.0, 100.0),
+    ]);
+    let position = positions.first().unwrap();
+
+    assert_eq!(position.state(), PositionState::Partial);
+    assert_eq!(position.remaining_quantity(), 5.0);
+    assert_eq!(position.buy_orders().len(), 3);
+    assert_eq!(position.sell_orders().len(), 2);
 }

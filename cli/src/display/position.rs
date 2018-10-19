@@ -102,16 +102,6 @@ pub fn print_price_usd(percent: f64, usd: f64) -> ColoredString {
     )
 }
 
-// pub fn unrealised_profit(presenter: PositionPresenter) -> ColoredString {
-//     match presenter.position.state() {
-//         PositionState::Closed | PositionState::Irreconciled => "".normal(),
-//         _ => 
-//             colored_number(
-//                 presenter.percent_change(),
-//                 format!("{:.2}% (${:.2}, {:.4} btc)", presenter.percent_change(), presenter.total_profit_usd(), presenter.total_profit_btc())),
-//     }
-// }
-
 pub fn position_state(state: PositionState) -> ColoredString {
     match state {
         PositionState::Open         => "OPEN".green(),
