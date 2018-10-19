@@ -16,8 +16,8 @@ pub fn positions(client: ::std::sync::Arc<::trailer::exchanges::ExchangeAPI>, pa
             if pairs.len() > 1 && pair == "BNBBTC".to_string() { continue };
 
             let price = *(prices.get(&pair).unwrap_or(&0.0));
-            // let grouped_orders = trailer::models::group_orders(orders.clone());
-            let positions = trailer::models::Position::new(orders);
+            let grouped_orders = trailer::models::group_by_price(orders.clone());
+            let positions = trailer::models::Position::new(grouped_orders);
 
             if pairs.len() == 1 { // if just one symbol was supplied
                 // print the entire history

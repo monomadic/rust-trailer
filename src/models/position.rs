@@ -44,9 +44,9 @@ impl Position {
 	pub fn sell_cost(&self) -> f64 { self.exit_price().unwrap_or(0.0) * self.sell_qty() }
 
 	// todo: memoize
-	pub fn compact_orders(&self) -> Vec<Order> {
-		Order::compact(self.orders.clone())
-	}
+	// pub fn compact_orders(&self) -> Vec<Order> {
+	// 	Order::group_by_price(self.orders.clone())
+	// }
 
 	// todo: memoize
 	pub fn buy_orders(&self) -> Vec<Order> {
