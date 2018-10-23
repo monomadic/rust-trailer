@@ -213,8 +213,8 @@ pub fn run_docopt() -> Result<String, TrailerError> {
                     Ok(position) => {
                         output_buffer.push_str(&::display::position::row_compact(position.clone()));
                         if args.flag_orders {
-                            for order in position.position.orders.clone() {
-                                output_buffer.push_str(&format!("  > {}", ::display::order::row(order.clone())));
+                            for order in position.order_presenters().clone() {
+                                output_buffer.push_str(&format!("  > {}", ::display::order::sub_row(order.clone())));
                             }
                         }
                     },

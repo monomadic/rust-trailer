@@ -1,4 +1,5 @@
 use models::*;
+use presenters::*;
 
 #[derive(Debug, Clone)]
 pub struct PositionPresenter {
@@ -8,21 +9,14 @@ pub struct PositionPresenter {
 }
 
 impl PositionPresenter {
-    // fn new(position: Position, current_price: f64, btc_price_in_usd: f64) -> Self {
-    //     Self {
-    //         position:               position,
-    //         current_price:          current_price,
-    //         btc_price_in_usd:       btc_price_in_usd,
-    //     }
-    // }
+    pub fn order_presenters(&self) -> Vec<OrderPresenter> {
+        self.position.orders.clone().into_iter().map(|o|
+            OrderPresenter { order: o, btc_value: self.btc_price_in_usd } ).collect()
+    }
 
     pub fn current_value_in_btc(&self) -> f64 {
         self.position.remaining_quantity() * self.current_price
     }
-    
-    // pub fn size_in_btc(&self) -> f64 {
-    //     self.position.size() * self.current_price
-    // }
 
     pub fn current_value_in_usd(&self) -> f64 {
         self.current_value_in_btc() * self.btc_price_in_usd
