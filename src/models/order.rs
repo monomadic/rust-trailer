@@ -23,23 +23,40 @@ impl Order {
 // reduce all orders with same price together (technically different orders from the order book)
 pub fn group_by_price(orders: Vec<Order>) -> Vec<Order> {
     let mut grouped_orders = Vec::new();
-    let mut orders = orders;
+    let first_order = orders.clone();
+    let first_order = first_order.first();
+    let orders = orders.clone().split_off(1);
+    // println!("orders {:?}", orders.clone());
 
-    if let Some(first_order) = orders.pop() {
+    // todo: rewrite using peek
+    if let Some(first_order) = first_order {
         let mut current_order = first_order.clone();
+        // println!("first {:?}", first_order.clone());
+        // println!("orders {:?}", orders.clone());
 
-        for order in orders {
-            if order.price == current_order.price && order.order_type == current_order.order_type {
-                current_order.qty += order.qty;
-            } else {
-                grouped_orders.push(current_order.clone());
-                current_order = order.clone();
+        if !orders.is_empty() {
+            for order in orders {
+                // println!("checking {}={}, {}={}", order.price, current_order.price, order.order_type, current_order.order_type);
+                if order.price == current_order.price && order.order_type == current_order.order_type {
+                    // println!("same {:?}", current_order.clone());
+                    current_order.qty += order.qty;
+                } else {
+                    // println!("different {:?}", current_order.clone());
+                    grouped_orders.push(current_order.clone());
+                    current_order = order.clone();
+                }
             }
         }
 
         grouped_orders.push(current_order.clone());
     }
-    grouped_orders.into_iter().rev().collect()
+    // grouped_orders.into_iter().rev().collect()
+    grouped_orders
+}
+
+#[cfg(test)]
+fn order_fixture(order_type: TradeType, qty: f64, price: f64) -> Order {
+    Order{ id: "".to_string(), symbol: "".to_string(), order_type: order_type, qty: qty, price: price }
 }
 
 #[test]
@@ -61,10 +78,6 @@ fn test_group_by_price_1() {
 
 #[test]
 fn test_group_by_price_2() {
-    fn order_fixture(order_type: TradeType, qty: f64, price: f64) -> Order {
-        Order{ id: "".to_string(), symbol: "".to_string(), order_type: order_type, qty: qty, price: price }
-    }
-
     let orders = group_by_price(vec![
         order_fixture(TradeType::Buy, 1.0, 100.0),
         order_fixture(TradeType::Buy, 1.0, 100.0),
@@ -79,10 +92,6 @@ fn test_group_by_price_2() {
 
 #[test]
 fn test_group_by_price_3() {
-    fn order_fixture(order_type: TradeType, qty: f64, price: f64) -> Order {
-        Order{ id: "".to_string(), symbol: "".to_string(), order_type: order_type, qty: qty, price: price }
-    }
-
     let orders = group_by_price(vec![
         order_fixture(TradeType::Buy, 1.0, 100.0),
         order_fixture(TradeType::Buy, 1.0, 100.0),
@@ -102,6 +111,24 @@ fn test_group_by_price_3() {
     assert_eq!(order.qty, 1.0);
     assert_eq!(order.price, 100.0);
     assert_eq!(order.order_type, TradeType::Sell);
+}
+
+#[test]
+fn test_group_by_price_4() {
+    let orders = group_by_price(vec![
+        order_fixture(TradeType::Buy, 1.0, 100.0),
+        order_fixture(TradeType::Buy, 1.0, 200.0),
+    ]);
+
+    assert_eq!(orders.len(), 2);
+
+    let order = orders.first().unwrap();
+    assert_eq!(order.qty, 1.0);
+    assert_eq!(order.price, 100.0);
+
+    let order = orders.last().unwrap();
+    assert_eq!(order.qty, 1.0);
+    assert_eq!(order.price, 200.0);
 }
 
 // group/average orders into a grouped vector by buy/sell type
