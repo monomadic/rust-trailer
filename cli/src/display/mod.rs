@@ -29,6 +29,10 @@ pub fn colored_number(num: f64, formatted_string: String) -> ColoredString {
     }
 }
 
+pub fn btc_and_usd_price(btc: f64, usd: f64) -> String {
+    format!("{:.2} btc (${:.0})", btc, usd)
+}
+
 pub fn colored_rsi(num: f64, formatted_string: String) -> ColoredString {
     if num < 30. { return formatted_string.red() }
     if num > 70. { return formatted_string.green() }
