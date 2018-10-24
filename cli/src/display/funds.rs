@@ -16,5 +16,5 @@ pub fn show_funds(funds: FundsPresenter) {
         println!("{:<8}\t{:<8.3} \t{:<8.3}\t{:<16}", altcoin.asset.symbol.yellow(), altcoin.asset.amount, altcoin.value_in_btc, display_fiat(altcoin.value_in_usd));
     }
 
-    println!("\nTotal value {:.4}B⃦ / {:.0}\n", funds.total_value_in_btc, display_fiat(funds.total_value_in_usd));
+    println!("\nTotal value {:.4}B⃦ / {}\n", funds.total_value_in_btc, display_fiat(funds.total_value_in_usd));
 }
