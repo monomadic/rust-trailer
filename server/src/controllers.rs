@@ -81,11 +81,17 @@ pub fn rsi(_req: &mut Request, conn: &::rusqlite::Connection) -> Result<String, 
     Ok(format!("{:#?}", page))
 }
 
-pub fn funds(_req: &mut Request) -> Result<String, ServerError> {
-    use trailer::exchanges::ExchangeAPI;
-    let client = ::trailer::exchanges::binance::connect("9N5duztMdrYfYg2ErhSDV837s8xfBIqF8D7mxpJTKiujvSwoIDI52UguhhkyRQBg", "OG6avXJGOeDt5Phbp150zeEgwjQZpgkXdrp8z2vwPv5bWlHuNFLrK4uAGidnpAIU");
+pub fn get_client() -> Result<::trailer::exchanges::binance::BinanceAPI, ServerError> {
+    let conf = ::trailer::config::read(false)?;
+    let keys = &conf.exchange["binance"];
+    Ok(::trailer::exchanges::binance::connect(&keys.api_key, &keys.secret_key))
+}
 
+pub fn funds(_req: &mut Request) -> Result<String, ServerError> {
     use trailer::presenters::*;
+    use trailer::exchanges::*;
+
+    let client = get_client()?;
 
     let prices = client.prices()?;
     let btc_price = *prices.get("BTCUSDT").expect("btc price not found."); // fix this with exchange agnostic value
@@ -95,10 +101,11 @@ pub fn funds(_req: &mut Request) -> Result<String, ServerError> {
 }
 
 pub fn positions(_req: &mut Request) -> Result<String, ServerError> {
-    use trailer::exchanges::ExchangeAPI;
     use trailer::presenters::*;
+    use trailer::exchanges::*;
 
-    let client = ::trailer::exchanges::binance::connect("9N5duztMdrYfYg2ErhSDV837s8xfBIqF8D7mxpJTKiujvSwoIDI52UguhhkyRQBg", "OG6avXJGOeDt5Phbp150zeEgwjQZpgkXdrp8z2vwPv5bWlHuNFLrK4uAGidnpAIU");
+    let client = get_client()?;
+
     let prices = client.prices()?;
     let btc_price = client.btc_price()?;
     let funds = client.funds()?;
