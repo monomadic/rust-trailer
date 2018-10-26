@@ -16,20 +16,7 @@ pub fn row_title() -> String {
 
 pub fn row(presenter: PositionPresenter) -> String {
     let position = presenter.position.clone();
-
-    format!("{symbol:12}{state:<9}{size:<32}{change:<40}{profit_loss:<40}{entry_price:<16.8}{exit_price:<16}\n",
-        symbol                      = position.symbol,
-        state                       = position_state(position.state()),
-        size                        = format!("{:.2} ({:.2} btc, ${:.2})", position.size(), presenter.size_in_btc(), presenter.size_in_usd()),
-        change                      = profit_loss(presenter.clone()),
-        profit_loss                 = print_price(presenter.realised_profit_percent(), presenter.realised_profit_usd(), presenter.realised_profit_btc()),
-        // percent_change              = colored_number(
-        //                                 position.potential_profit_percent,
-        //                                 format!("{:.2}% (${:.2}, {:.8} btc)", position.potential_profit_percent, position.potential_profit_usd, position.potential_profit_btc)),
-        // sale_price                  = format!("{:.8} (%{:.2})",  position.sale_price, position.change_as_percent()),
-        entry_price                 = position.entry_price(),
-        exit_price                  = position.exit_price().map_or("".to_string(), |m| format!("{:.8}", m)),
-    )
+    format!("{:#?}", position)
 }
 
 pub fn profit_loss(presenter: PositionPresenter) -> String {
