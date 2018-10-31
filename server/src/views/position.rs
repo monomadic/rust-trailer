@@ -16,7 +16,17 @@ pub fn row_title() -> String {
 
 pub fn row(presenter: PositionPresenter) -> String {
     let position = presenter.position.clone();
-    format!("{:#?}", position)
+    // format!("{:#?}", position)
+
+    format!("{symbol:12}{state:<9}{size:<20}{upnl:20}{rpnl:<20}{entry_price:<16.8}{exit_price:<16}\n",
+        symbol                      = position.symbol(),
+        state                       = position_state(position.state()),
+        size                        = position_size_compact(presenter.clone()), //format!("{:.2} btc (${:.0})", presenter.current_value_in_btc(), presenter.current_value_in_usd()),
+        upnl                        = print_price_usd(presenter.percent_change(), presenter.unrealised_profit_usd()),
+        rpnl                        = price_or_nothing(presenter),
+        entry_price                 = position.entry_price(),
+        exit_price                  = position.exit_price().map_or("".to_string(), |m| format!("{:.8}", m)),
+    )
 }
 
 // pub fn profit_loss(presenter: PositionPresenter) -> String {
@@ -28,13 +38,6 @@ pub fn row(presenter: PositionPresenter) -> String {
 //                 format!("{:.2}% (${:.2}, {:.8} btc)", presenter.percent_change(), presenter.total_profit_usd(), presenter.total_profit_btc())),
 //     }
 // }
-
-pub fn print_price(percent: f64, usd: f64, btc: f64) -> String {
-    colored_number(
-        percent,
-        format!("{:.2}% (${:.2}, {:.4} btc)", percent, usd, btc)
-    )
-}
 
 // pub fn unrealised_profit(presenter: PositionPresenter) -> String {
 //     match presenter.position.state() {
@@ -63,3 +66,17 @@ pub fn position_size_compact(presenter: PositionPresenter) -> String {
     }
 }
 
+pub fn price_or_nothing(presenter: PositionPresenter) -> String {
+    match presenter.position.state() {
+        PositionState::Open => "-".to_string(),
+        _ => format!("${:.2}", presenter.realised_profit_usd()),
+    }
+}
+
+pub fn print_price(percent: f64, usd: f64, btc: f64) -> String {
+    format!("{:.2}% (${:.2}, {:.4} btc)", percent, usd, btc)
+}
+
+pub fn print_price_usd(percent: f64, usd: f64) -> String {
+    format!("{:.2}% (${:.2})", percent, usd)
+}

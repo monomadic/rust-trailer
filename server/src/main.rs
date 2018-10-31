@@ -48,10 +48,6 @@ fn main() {
         controllers::handle_request(controllers::funds(r))
     }, "funds");
 
-    router.get("/positions", move |r: &mut Request| {
-        controllers::handle_request(controllers::positions(r))
-    }, "positions");
-
     router.get("/chart/:symbol", move |r: &mut Request| {
         controllers::handle_request(controllers::chart(r))
     }, "chart");
@@ -65,6 +61,14 @@ fn main() {
     router.get("/prices.json", move |r: &mut Request| {
         controllers::handle_request(controllers::prices(r, &db_prices.lock().unwrap()))
     }, "prices");
+
+    router.get("/positions", move |r: &mut Request| {
+        controllers::handle_request(controllers::positions(r))
+    }, "positions");
+
+    router.get("/positions.json", move |r: &mut Request| {
+        controllers::handle_request(controllers::positions_json(r))
+    }, "positions_json");
 
     // let db_by_tag = db.clone();
     // router.get("/tag/:tag", move |r: &mut Request| {
