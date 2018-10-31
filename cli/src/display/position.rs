@@ -1,7 +1,5 @@
-// use trailer::models::Position;
 use colored::*;
 use trailer::models::*;
-// use trailer::error::*;
 use trailer::presenters::*;
 
 use super::colored_number;
@@ -24,7 +22,7 @@ pub fn row(presenter: PositionPresenter) -> String {
     format!("{symbol:12}{state:<9}{size:<32}{upnl:50}{rpnl:<50}{entry_price:<16.8}{exit_price:<16}\n",
         symbol                      = position.symbol(),
         state                       = position_state(position.state()),
-        size                        = position_size(presenter.position.remaining_quantity(), presenter.current_value_in_btc(), presenter.current_value_in_usd()),
+        size                        = position_size(presenter.position.remaining_qty(), presenter.current_value_in_btc(), presenter.current_value_in_usd()),
         upnl                        = unrealised_profit_loss(presenter.clone()),
         rpnl                        = realised_profit_loss(presenter.clone()),
         entry_price                 = position.entry_price(),
@@ -108,5 +106,6 @@ pub fn position_state(state: PositionState) -> ColoredString {
         PositionState::Partial      => "PART".yellow(),
         PositionState::Closed       => "CLOSED".normal(),
         PositionState::Irreconciled => "IRREC".red(),
+        PositionState::Invalid      => "INVALID".red(),
     }
 }

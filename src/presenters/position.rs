@@ -15,7 +15,7 @@ impl PositionPresenter {
     }
 
     pub fn current_value_in_btc(&self) -> f64 {
-        self.position.remaining_quantity() * self.current_price
+        self.position.remaining_qty() * self.current_price
     }
 
     pub fn current_value_in_usd(&self) -> f64 {
@@ -26,20 +26,9 @@ impl PositionPresenter {
         price_percent(self.position.entry_price(), self.current_price)
     }
 
-    pub fn total_profit_btc(&self) -> f64 {
-        self.current_value_in_btc() * (self.percent_change() / 100.0)
-    }
-
-    pub fn total_profit_usd(&self) -> f64 {
-        self.total_profit_btc() * self.btc_price_in_usd
-    }
-
+    /// price of remaining units at the current price - those units at buy price
     pub fn unrealised_profit_btc(&self) -> f64 {
-        // price of remaining units at the current price - those units at buy price
-        // (self.position.remaining_quantity() * self.current_price) - (self.position.remaining_quantity() * self.position.entry_price())
-
-        // self.position.remaining_quantity() * (self.current_price - self.position.entry_price())
-        ((self.current_price * self.position.remaining_quantity()) - (self.position.entry_price() * self.position.remaining_quantity()))
+        ((self.current_price * self.position.remaining_qty()) - (self.position.entry_price() * self.position.remaining_qty()))
     }
 
     pub fn unrealised_profit_usd(&self) -> f64 {
@@ -48,7 +37,7 @@ impl PositionPresenter {
 
     pub fn realised_profit_btc(&self) -> f64 {
         if let Some(exit_price) = self.position.exit_price() {
-            (self.position.sell_qty() * exit_price) - (self.position.sell_qty() * self.position.entry_price())
+            ((exit_price * self.position.sell_qty()) - (self.position.entry_price() * self.position.sell_qty()))
         } else { 0.0 }
     }
 
@@ -81,7 +70,7 @@ mod tests {
     }
 
     #[test]
-    fn test_position_presenter_state_partial() {
+    fn test_position_presenter_state_partial_1() {
         let position = Position::new(vec![
             order_fixture(TradeType::Buy, 2.0, 100.0), // value: 200
             order_fixture(TradeType::Sell, 1.0, 100.0), // sold: 100 worth, remaining: 100, profit: 0
@@ -96,9 +85,38 @@ mod tests {
         assert_eq!(presenter.current_value_in_btc(), 110.0);
         assert_eq!(presenter.current_value_in_usd(), 220.0);
         assert_eq!(presenter.percent_change(), 10.0);
-        assert_eq!(presenter.total_profit_btc(), 11.0); // current btc value of profit
-        assert_eq!(presenter.total_profit_usd(), 22.0);
-        // assert_eq!(presenter.unrealised_profit_btc(), 20.0);
+        assert_eq!(presenter.position.buy_qty(), 2.0);
+        assert_eq!(presenter.position.sell_qty(), 1.0);
+        assert_eq!(presenter.position.remaining_qty(), 1.0);
+        assert_eq!(presenter.position.entry_price(), 100.0);
+        assert_eq!(presenter.position.exit_price(), Some(100.0));
         assert_eq!(presenter.realised_profit_btc(), 0.0);
+        assert_eq!(presenter.unrealised_profit_btc(), 10.0);
+    }
+
+    #[test]
+    fn test_position_presenter_state_partial_2() {
+        let position = Position::new(vec![
+            order_fixture(TradeType::Buy, 2.0, 100.0), // value: 200
+            order_fixture(TradeType::Buy, 2.0, 110.0), // value: 4x105=420, qty: 4
+            order_fixture(TradeType::Sell, 1.0, 150.0), // sold: 1, qty: 3
+        ]);
+
+        let presenter = PositionPresenter {
+            position:           position.first().unwrap().clone(),
+            current_price:      110.0,
+            btc_price_in_usd:   2.0,
+        };
+
+        assert_eq!(presenter.position.buy_qty(), 4.0);
+        assert_eq!(presenter.position.sell_qty(), 1.0);
+        assert_eq!(presenter.position.remaining_qty(), 3.0);
+        assert_eq!(presenter.position.entry_price(), 105.0);
+        assert_eq!(presenter.position.exit_price(), Some(150.0));
+        assert_eq!(presenter.current_value_in_btc(), 330.0);
+        assert_eq!(presenter.current_value_in_usd(), 660.0);
+        assert_eq!(presenter.realised_profit_btc().floor(), 45.0); // current btc value of profit
+        assert_eq!(presenter.unrealised_profit_btc(), 15.0); // 330 possible sale, paid 3x105=315 = 15
+        assert_eq!(presenter.percent_change().floor(), 4.0);
     }
 }

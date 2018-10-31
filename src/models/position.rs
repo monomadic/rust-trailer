@@ -10,7 +10,8 @@ pub enum PositionState {
     Open,
     Partial,
     Closed,
-    Irreconciled, // when things don't make sense
+    Irreconciled, // oversold vs assets
+    Invalid, // when things don't make sense
 }
 
 impl ::std::fmt::Display for PositionState {
@@ -19,6 +20,7 @@ impl ::std::fmt::Display for PositionState {
             PositionState::Open => write!(f, "OPEN"),
             PositionState::Partial => write!(f, "PART"),
             PositionState::Closed => write!(f, "CLOSED"),
+            PositionState::Invalid => write!(f, "INVALID"),
             PositionState::Irreconciled => write!(f, "IRREC"),
         }
     }
@@ -58,12 +60,8 @@ impl Position {
 		self.orders.clone().into_iter().filter(|o| o.order_type == TradeType::Sell).collect()
 	}
 	
-	pub fn remaining_quantity(&self) -> f64 {
-		if self.state() == PositionState::Closed {
-			self.buy_qty()
-		} else {
-			self.buy_qty() - self.sell_qty()
-		}
+	pub fn remaining_qty(&self) -> f64 {
+        self.buy_qty() - self.sell_qty()
 	}
 
 	pub fn state(&self) -> PositionState {
@@ -312,7 +310,7 @@ mod tests {
         let position = positions.first().unwrap();
 
         assert_eq!(position.state(), PositionState::Partial);
-        assert_eq!(position.remaining_quantity(), 1.0);
+        assert_eq!(position.remaining_qty(), 1.0);
     }
 
     #[test]
@@ -328,7 +326,7 @@ mod tests {
         let position = positions.first().unwrap();
 
         assert_eq!(position.state(), PositionState::Partial);
-        assert_eq!(position.remaining_quantity(), 5.0);
+        assert_eq!(position.remaining_qty(), 5.0);
         assert_eq!(position.buy_orders().len(), 3);
         assert_eq!(position.sell_orders().len(), 2);
     }
@@ -346,7 +344,7 @@ mod tests {
         let position = positions.first().unwrap();
 
         assert_eq!(position.state(), PositionState::Closed);
-        // assert_eq!(position.remaining_quantity(), 0.0);
+        assert_eq!(position.remaining_qty(), 0.0);
         assert_eq!(position.buy_orders().len(), 3);
         assert_eq!(position.sell_orders().len(), 2);
     }
