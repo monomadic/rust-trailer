@@ -21,7 +21,7 @@ pub fn positions(client: ::std::sync::Arc<::trailer::exchanges::ExchangeAPI>, pa
 
             if pairs.len() == 1 { // if just one symbol was supplied
                 // print the entire history
-                for (index, position) in positions.into_iter().enumerate() {
+                for (index, position) in positions.into_iter().rev().enumerate() {
                     if index == 0 || show_all || (position.state() != PositionState::Irreconciled && position.state() != PositionState::Partial) {
                         presenters.push(Ok(PositionPresenter{ position: position, current_price: price, btc_price_in_usd: btc_price }));
                     }
@@ -56,5 +56,5 @@ pub fn positions(client: ::std::sync::Arc<::trailer::exchanges::ExchangeAPI>, pa
         });
     }
 
-    Ok(presenters.into_iter().rev().collect())
+    Ok(presenters)
 }
