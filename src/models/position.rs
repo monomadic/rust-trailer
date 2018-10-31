@@ -35,7 +35,7 @@ impl Position {
 
 	pub fn exit_price(&self) -> Option<f64> {
 		if self.sell_orders().len() > 0 {
-			Some(self.sell_orders().into_iter().map(|o|o.price).sum())
+			Some(self.sell_orders().into_iter().map(|o|o.price).sum::<f64>() / self.sell_orders().len() as f64)
 		} else { None }
 	}
 

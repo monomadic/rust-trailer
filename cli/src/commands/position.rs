@@ -56,5 +56,5 @@ pub fn positions(client: ::std::sync::Arc<::trailer::exchanges::ExchangeAPI>, pa
         });
     }
 
-    Ok(presenters)
+    Ok(presenters.into_iter().rev().collect())
 }
