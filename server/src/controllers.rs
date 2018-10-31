@@ -12,14 +12,17 @@ pub fn handle_request(result: Result<String, ServerError>) -> IronResult<Respons
             status::Ok,
             body,
         ))),
-        Err(error) => Err(::iron::error::IronError {
-            error: Box::new(error),
-            response: Response::with((
-                ContentType::html().0,
-                status::Ok,
-                "iron error".to_string(),
-            )),
-        })
+        Err(error) => {
+            let err_msg = format!("iron error: {:?}", error);
+            Err(::iron::error::IronError {
+                error: Box::new(error),
+                response: Response::with((
+                    ContentType::html().0,
+                    status::Ok,
+                    err_msg,
+                )),
+            })
+        }
     }
 }
 
@@ -100,6 +103,46 @@ pub fn funds(_req: &mut Request) -> Result<String, ServerError> {
     ::views::funds(funds)
 }
 
+pub fn positions_json(_req: &mut Request) -> Result<String, ServerError> {
+    use trailer::presenters::*;
+    use trailer::exchanges::*;
+
+    let client = get_client()?;
+
+    let prices = client.prices()?;
+    let btc_price = client.btc_price()?;
+    let funds = client.funds()?;
+
+    let mut output_buffer = ::views::position::row_title();
+    let pairs:Vec<String> = funds.alts.into_iter().map(|fund| format!("{}BTC", fund.symbol)).collect();
+    let mut output_json = Vec::new();
+
+    for pair in pairs {
+        let orders = client.trades_for(&pair);
+
+        if let Ok(orders) = orders {  // ok to swallow error here. not critical.
+            let price = *(prices.get(&pair).unwrap_or(&0.0));
+
+            let grouped_orders = ::trailer::models::average_orders(orders.clone());
+            // let positions = trailer::models::Position::calculate(grouped_orders, price, btc_price, None);
+            let positions = ::trailer::models::Position::new(grouped_orders);
+
+            for position in positions {
+                let presenter = PositionPresenter{ position: position.clone(), current_price: price, btc_price_in_usd: btc_price };
+                // if presenter.into_iter().filter(|p| p.position.state() == PositionState::Open) {
+                    output_buffer.push_str(&::views::position::row(presenter));
+                // }
+                // positions.push(::views::position::row(presenter));
+                output_json.push(json!({
+                    "symbol": position.symbol(),
+                }))
+            }
+        }
+    };
+
+    Ok(format!("{}", serde_json::to_string(&output_json)?))
+}
+
 pub fn positions(_req: &mut Request) -> Result<String, ServerError> {
     use trailer::presenters::*;
     use trailer::exchanges::*;
@@ -123,13 +166,19 @@ pub fn positions(_req: &mut Request) -> Result<String, ServerError> {
             // let positions = trailer::models::Position::calculate(grouped_orders, price, btc_price, None);
             let positions = ::trailer::models::Position::new(grouped_orders);
 
-            for position in positions {
-                let presenter = PositionPresenter{ position: position, current_price: price, btc_price_in_usd: btc_price };
-                // if presenter.into_iter().filter(|p| p.position.state() == PositionState::Open) {
-                    output_buffer.push_str(&::views::position::row(presenter));
-                // }
-                // positions.push(::views::position::row(presenter));
+            if let Some(pos) = positions.last() {
+                let presenter = PositionPresenter{ position: pos.clone(), current_price: price, btc_price_in_usd: btc_price };
+                output_buffer.push_str(&::views::position::row(presenter));
             }
+
+            // for position in positions {
+            //     let presenter = PositionPresenter{ position: position, current_price: price, btc_price_in_usd: btc_price };
+            //     // if presenter.into_iter().filter(|p| p.position.state() == PositionState::Open) {
+            //         output_buffer.push_str(&::views::position::row(presenter));
+            //     // }
+                
+
+            // }
         }
     };
 
