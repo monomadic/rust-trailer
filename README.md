@@ -1,4 +1,4 @@
-Note: this library has been rewritten from the ground up as [cryptotrader-core](cryptotrader-core). It is a much better library, please check that instead.
+Note: this library has been rewritten from the ground up as [cryptotrader-core](//github.com/robsaunders/cryptotrader-core). It is a much better library, please check that instead.
 
 # Trailer
 
