@@ -1,3 +1,5 @@
+Note: this library has been rewritten from the ground up as [https://github.com/robsaunders/cryptotrailer-core](cryptotrader-core). It is a much better library, please check that instead.
+
 # Trailer
 
 Cryptocurrency exchange library for interacting with various exchanges, currently supporting:
